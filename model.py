@@ -2,6 +2,7 @@ import math
 import random
 import numpy as np
 from TextSpanPDF import TextSpanPDF
+from ParserWeb import ParserWeb
 from pdf_parser import ParserPDF
 import re
 
@@ -19,9 +20,13 @@ class Model:
         self.__full_time_to_read = 0
         self.__full_time_standard_deviation = 0
         self.parserPDF = ParserPDF()
+        self.parserWeb = ParserWeb()
 
     def read_text_from_pdf(self, filename):
         self.list_text_spans = self.parserPDF.start(filename)
+
+    def read_text_from_site(self, url):
+        self.list_text_spans = self.parserWeb.parse_webpage(url)
 
     def set_distance_to_display(self, distance_in_cm):
         self.distance_to_display = distance_in_cm

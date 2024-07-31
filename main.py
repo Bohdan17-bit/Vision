@@ -50,7 +50,8 @@ def num_spaces(str):
 if __name__ == "__main__":
 
     model = Model()
-    model.read_text_from_pdf("C:/Users/newde/OneDrive/Рабочий стол/example-parser.pdf")
+    #model.read_text_from_pdf("C:/Users/newde/OneDrive/Рабочий стол/example-parser.pdf")
+    model.read_text_from_site("https://shields.io")
     model.set_distance_to_display(40)
 
     words_spans = model.get_text_list_spans()
@@ -71,6 +72,7 @@ if __name__ == "__main__":
     for word in words_spans:
 
         if word.text_span.isalpha():
+
 
             print(f"Next word : {word.text_span}")
 
