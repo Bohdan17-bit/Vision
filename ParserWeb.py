@@ -3,9 +3,11 @@ from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
-from bs4 import BeautifulSoup
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 import re
-from TextSpanPDF import TextSpanPDF
+from TextSpan import TextSpanPDF
+from selenium.common.exceptions import StaleElementReferenceException
 
 
 class ParserWeb:
@@ -19,62 +21,94 @@ class ParserWeb:
         options.add_argument("--no-sandbox")
         options.add_argument("--disable-dev-shm-usage")
         options.add_argument("--window-size=1920x1080")
-        options.add_argument("--start-maximized")  #
+        options.add_argument("--start-maximized")
         service = Service('C:/chr-drv/chromedriver.exe')
         driver = webdriver.Chrome(service=service, options=options)
         driver.get(url)
 
-        # JavaScript для обгортання кожного слова в <span class="word">
-        driver.execute_script("""
-            const allElements = document.querySelectorAll('*:not(script):not(style)');
-            allElements.forEach(elem => {
-                if (elem.children.length === 0 && elem.textContent.trim() !== '') {
-                    const parts = elem.textContent.split(/(\\s+|\\b)/);
-                    elem.innerHTML = parts.map(part => {
-                        if (part.trim() !== '') {
-                            return `<span class="word">${part}</span>`;
-                        } else {
-                            return part;
-                        }
-                    }).join('');
-                }
-            });
+        driver.execute_script(r"""
+            function wrapTextNodesInSpan(element) {
+                element.childNodes.forEach(child => {
+                    if (child.nodeType === Node.TEXT_NODE && child.textContent.trim() !== '') {
+                        const parts = child.textContent.split(/(\s+|[.,!?;:"(){}\[\]])/);
+                        const spanElements = parts.map(part => {
+                            if (part.trim() !== '') {
+                                return `<span class="word">${part}</span>`;
+                            } else {
+                                return part;
+                            }
+                        }).join('');
+                        const spanContainer = document.createElement('span');
+                        spanContainer.innerHTML = spanElements;
+                        element.replaceChild(spanContainer, child);
+                    } else if (child.nodeType === Node.ELEMENT_NODE) {
+                        wrapTextNodesInSpan(child);
+                    }
+                });
+            }
+
+            wrapTextNodesInSpan(document.body);
         """)
 
-        elements = driver.find_elements(By.CLASS_NAME, "word")
+        elements = WebDriverWait(driver, 10).until(
+            EC.presence_of_all_elements_located((By.CLASS_NAME, "word"))
+        )
 
         for elem in elements:
-            text = elem.text.strip()
-            if text:
-                style = self.get_style_properties(driver, elem)
-                font_size = self.extract_font_size(style.get("fontSize", ""))
-                #font_weight = self.extract_font_weight(style.get("fontWeight", ""))
-                #font_style = style.get("fontStyle", "normal")
-                color = style.get("color", "black")
-                x1, y1, x2, y2 = self.get_element_coordinates(driver, elem)
-                word_span = TextSpanPDF()
-                text = text.lower()
-                word_span.set_text(text)
-                word_span.set_size_text(font_size)
-                word_span.set_background_color("")
-                word_span.set_color_text(color)
-                word_span.set_coords(x1, y1, x2, y2)
-                word_span.set_flags("")
-                self.list_spans.append(word_span)
+            try:
+                text = elem.text.strip()
+                if text:
+                    text = text.rstrip(".,!?;:\"(){}[]")
+                    style = self.get_style_properties(driver, elem)
+                    font_size = self.extract_font_size(style.get("fontSize", ""))
+                    font_family = self.get_active_font_family(driver, elem)
+                    color = style.get("color", "black")
+                    x1, y1, x2, y2 = self.get_element_coordinates(driver, elem)
+                    word_span = TextSpanPDF()
+                    text = text.lower()
+                    word_span.set_text(text)
+                    word_span.set_size_text(font_size)
+                    word_span.set_background_color("")
+                    word_span.set_color_text(color)
+                    word_span.set_coords(x1, y1, x2, y2)
+                    word_span.set_flags("")
+                    self.list_spans.append(word_span)
+
+                    print(f"Text: {text}, Font Family: {font_family}")
+
+            except StaleElementReferenceException:
+                # Повторно знайти елемент або продовжити обробку
+                continue
 
         driver.quit()
         return self.list_spans
 
     def get_style_properties(self, driver, element):
-        script = """
+        script = r"""
         const elem = arguments[0];
         const style = window.getComputedStyle(elem);
         return {
             fontSize: style.fontSize,
             fontWeight: style.fontWeight,
             fontStyle: style.fontStyle,
-            color: style.color
+            color: style.color,
+            fontFamily: style.fontFamily
         };
+        """
+        return driver.execute_script(script, element)
+
+    def get_active_font_family(self, driver, element):
+        script = r"""
+        const elem = arguments[0];
+        const style = window.getComputedStyle(elem);
+        const fontFamilyList = style.fontFamily.split(',');
+        for (const font of fontFamilyList) {
+            const fontName = font.trim().replace(/['"]/g, ''); 
+            if (document.fonts.check(`1em ${fontName}`)) {
+                return fontName;
+            }
+        }
+        return style.fontFamily.split(',')[0].trim().replace(/['"]/g, ''); 
         """
         return driver.execute_script(script, element)
 
@@ -97,7 +131,7 @@ class ParserWeb:
             return font_weight_str
 
     def get_element_coordinates(self, driver, element):
-        script = """
+        script = r"""
         const rect = arguments[0].getBoundingClientRect();
         return [rect.left, rect.top, rect.right, rect.bottom];
         """

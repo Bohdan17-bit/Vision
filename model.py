@@ -1,7 +1,7 @@
 import math
 import random
 import numpy as np
-from TextSpanPDF import TextSpanPDF
+from TextSpan import TextSpanPDF
 from ParserWeb import ParserWeb
 from pdf_parser import ParserPDF
 import re

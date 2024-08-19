@@ -1,7 +1,7 @@
 import json
 import fitz
 import re
-from TextSpanPDF import TextSpanPDF
+from TextSpan import TextSpanPDF
 from PIL import Image
 import io
 

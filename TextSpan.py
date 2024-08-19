@@ -1,21 +1,17 @@
-
 class TextSpanPDF:
-
-    distance_to_next_span = 0
-
-    text_span = ""
-
-    font_span = None
-    size = None
-    color = ""
-    background_color = ""
-    flags = None
-
-    coord_x_start = 0
-    coord_y_start = 0
-
-    coord_x_end = 0
-    coord_y_end = 0
+    def __init__(self):
+        self.distance_to_next_span = 0
+        self.text_span = ""
+        self.font_span = None
+        self.size = None
+        self.color = ""
+        self.background_color = ""
+        self.flags = None
+        self.coord_x_start = 0
+        self.coord_y_start = 0
+        self.coord_x_end = 0
+        self.coord_y_end = 0
+        self.is_last_in_line = False
 
     def set_background_color(self, bg_color):
         self.background_color = bg_color

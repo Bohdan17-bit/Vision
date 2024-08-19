@@ -48,10 +48,9 @@ def num_spaces(str):
 
 
 if __name__ == "__main__":
-
     model = Model()
-    #model.read_text_from_pdf("C:/Users/newde/OneDrive/Рабочий стол/example-parser.pdf")
-    model.read_text_from_site("https://shields.io")
+    # model.read_text_from_pdf("C:/Users/newde/OneDrive/Рабочий стол/example-parser.pdf")
+    model.read_text_from_site("https://roadmap.sh/about")
     model.set_distance_to_display(40)
 
     words_spans = model.get_text_list_spans()
@@ -70,10 +69,7 @@ if __name__ == "__main__":
     state = "updated"
 
     for word in words_spans:
-
         if word.text_span.isalpha():
-
-
             print(f"Next word : {word.text_span}")
 
             if rest_letters > 3:
@@ -81,7 +77,10 @@ if __name__ == "__main__":
 
             dict_probability = model.calculate_probability_landing(word.text_span, rest_letters)
 
-            index_chose = model.calculate_final_pos_fixation(dict_probability)
+            print(f"Index calculated for word : <{word.text_span}>")
+
+            if state == "updated":
+                index_chose = model.calculate_final_pos_fixation(dict_probability)
 
             if state == "2 symbols after word":
                 index_chose = 0
@@ -90,6 +89,10 @@ if __name__ == "__main__":
             if word.distance_to_next_span > 0:
                 index_chose = len(word.text_span) - 1
                 print("End of this word...")
+
+            if word.is_last_in_line:
+                index_chose = len(word.text_span) - 1
+                print("End of line...")
 
             # here we skip current word and don't need to calculate reading time
             if index_chose == len(word.text_span):
@@ -109,7 +112,7 @@ if __name__ == "__main__":
                 print(f"Chance to refixation = {round(prob_refix, 3)}")
 
                 if model.should_refixate(prob_refix):
-                    print("Need to make a refixation!")
+                    print("------------------Need to make a refixation------------------")
 
                     time_refix = model.make_refixation(word.text_span, index_chose + 1)
                     time_refix_sd = model.calculate_sd(time_refix)
