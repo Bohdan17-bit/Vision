@@ -57,7 +57,13 @@ class ParserWeb:
         for elem in elements:
             try:
                 text = elem.text.strip()
-                if text:
+
+                # Фільтрація тексту з атрибутами, як src=, href=, або URL
+                if text and len(text) > 1 and not re.match(r'^[\s.,!?;:"(){}\[\]<>/]+$', text):
+                    # Фільтрація за наявністю "src=" або URL
+                    if '=' in text or '<' in text or '>' in text or '/' in text or re.search(r'http[s]?://', text):
+                        continue  # Пропускаємо ці елементи
+
                     text = text.rstrip(".,!?;:\"(){}[]")
                     style = self.get_style_properties(driver, elem)
                     font_size = self.extract_font_size(style.get("fontSize", ""))
@@ -77,11 +83,11 @@ class ParserWeb:
                     print(f"Text: {text}, Font Family: {font_family}")
 
             except StaleElementReferenceException:
-                # Повторно знайти елемент або продовжити обробку
                 continue
 
         driver.quit()
         return self.list_spans
+
 
     def get_style_properties(self, driver, element):
         script = r"""
