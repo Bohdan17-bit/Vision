@@ -12,9 +12,16 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 
 
 class Ui_MainWindow(object):
+
+    def start_thread(self):
+        from main import Worker
+        self.worker = Worker()
+        self.worker.progress_signal.connect(self.add_text_to_process_textedit)
+        self.worker.start()
+
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
-        MainWindow.resize(1500, 850)
+        MainWindow.resize(1600, 900)
         font = QtGui.QFont()
         font.setPointSize(12)
         MainWindow.setFont(font)
@@ -49,7 +56,7 @@ class Ui_MainWindow(object):
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.ChooseFile_btn.sizePolicy().hasHeightForWidth())
         self.ChooseFile_btn.setSizePolicy(sizePolicy)
-        self.ChooseFile_btn.setMinimumSize(QtCore.QSize(0, 70))
+        self.ChooseFile_btn.setMinimumSize(QtCore.QSize(0, 50))
         font = QtGui.QFont()
         font.setPointSize(12)
         self.ChooseFile_btn.setFont(font)
@@ -73,9 +80,10 @@ class Ui_MainWindow(object):
         self.verticalLayout_5.addWidget(self.label_7)
         self.verticalLayout_4 = QtWidgets.QVBoxLayout()
         self.verticalLayout_4.setObjectName("verticalLayout_4")
-        self.Process_listView = QtWidgets.QListView(self.centralwidget)
-        self.Process_listView.setObjectName("Process_listView")
-        self.verticalLayout_4.addWidget(self.Process_listView)
+        self.plainTextEdit = QtWidgets.QPlainTextEdit(self.centralwidget)
+        self.plainTextEdit.setObjectName("plainTextEdit")
+        self.plainTextEdit.setReadOnly(True)
+        self.verticalLayout_4.addWidget(self.plainTextEdit)
         self.label_8 = QtWidgets.QLabel(self.centralwidget)
         font = QtGui.QFont()
         font.setFamily("Segoe UI")
@@ -86,10 +94,11 @@ class Ui_MainWindow(object):
         self.label_8.setWordWrap(True)
         self.label_8.setObjectName("label_8")
         self.verticalLayout_4.addWidget(self.label_8)
-        self.TotalTime_lineEdit = QtWidgets.QLineEdit(self.centralwidget)
+        self.TotalTime_lineEdit = QtWidgets.QTextEdit(self.centralwidget)
         font = QtGui.QFont()
-        font.setPointSize(14)
+        font.setPointSize(12)
         self.TotalTime_lineEdit.setFont(font)
+        self.TotalTime_lineEdit.setFixedHeight(80)
         self.TotalTime_lineEdit.setText("")
         self.TotalTime_lineEdit.setReadOnly(True)
         self.TotalTime_lineEdit.setObjectName("TotalTime_lineEdit")
@@ -231,7 +240,7 @@ class Ui_MainWindow(object):
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.Start_btn.sizePolicy().hasHeightForWidth())
         self.Start_btn.setSizePolicy(sizePolicy)
-        self.Start_btn.setMinimumSize(QtCore.QSize(0, 70))
+        self.Start_btn.setMinimumSize(QtCore.QSize(0, 50))
         font = QtGui.QFont()
         font.setPointSize(12)
         self.Start_btn.setFont(font)
@@ -255,8 +264,8 @@ class Ui_MainWindow(object):
 
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
-        MainWindow.setWindowTitle(_translate("MainWindow", "MainWindow"))
-        self.label.setText(_translate("MainWindow", "Оберіть необхідний файл або вставте URL адресу веб-сторінки"))
+        MainWindow.setWindowTitle(_translate("MainWindow", "Головне вікно"))
+        self.label.setText(_translate("MainWindow", "Оберіть необхідний файл або вставте URL адресу вебсторінки"))
         self.ChooseFile_btn.setText(_translate("MainWindow", "Обрати файл"))
         self.label_7.setText(_translate("MainWindow", "Проміжні результати"))
         self.label_8.setText(_translate("MainWindow", "Загальний час читання"))
@@ -267,6 +276,9 @@ class Ui_MainWindow(object):
         self.label_5.setText(_translate("MainWindow", "Відстань до екрану (см)"))
         self.label_6.setText(_translate("MainWindow", "Щільність пікселів (DPI)"))
         self.Start_btn.setText(_translate("MainWindow", "Почати аналіз"))
+
+    def add_text_to_process_textedit(self, text):
+        self.plainTextEdit.appendPlainText(text)
 
 
 if __name__ == "__main__":

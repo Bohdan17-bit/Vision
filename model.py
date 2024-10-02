@@ -1,10 +1,14 @@
 import math
 import random
+import urllib
+
 import numpy as np
-from TextSpan import TextSpanPDF
+
 from ParserWeb import ParserWeb
 from pdf_parser import ParserPDF
 import re
+from docx2pdf import convert
+import os
 
 
 class Model:
@@ -15,6 +19,8 @@ class Model:
     standard_deviation_latency = 50
 
     distance_to_display = 0
+    path = ""
+    PPI = 0
 
     def __init__(self):
         self.__full_time_to_read = 0
@@ -22,14 +28,47 @@ class Model:
         self.parserPDF = ParserPDF()
         self.parserWeb = ParserWeb()
 
-    def read_text_from_pdf(self, filename):
-        self.list_text_spans = self.parserPDF.start(filename)
+    def read_text_from_pdf(self):
+        if not os.path.isfile(self.path):
+            raise FileNotFoundError(f"The file {self.path} does not exist.")
+        self.list_text_spans = self.parserPDF.start(self.path)
 
     def read_text_from_site(self, url):
         self.list_text_spans = self.parserWeb.parse_webpage(url)
 
     def set_distance_to_display(self, distance_in_cm):
         self.distance_to_display = distance_in_cm
+
+    def calculate_ppi(self, width_px, height_px, diagonal_inches):
+        diagonal_pixels = math.sqrt((width_px * width_px + height_px * height_px))
+        return diagonal_pixels / diagonal_inches
+
+    def set_ppi(self, width_px, height_px, diagonal_inches):
+        self.PPI = self.calculate_ppi(width_px, height_px, diagonal_inches)
+
+    def set_path(self, user_path):
+        self.path = user_path
+
+    def convert_word_to_pdf(self, file_docx):
+        try:
+            if not file_docx.lower().endswith(".docx"):
+                raise ValueError("Файл не має розширення .docx")
+
+            decoded_path = urllib.parse.unquote(file_docx)
+
+            decoded_path = os.path.normpath(decoded_path)
+
+            new_name = os.path.splitext(decoded_path)[0] + ".pdf"
+
+            convert(decoded_path, new_name)
+
+            self.set_path(new_name)
+
+            print(f"Файл успішно конвертовано: {new_name}")
+            return new_name
+        except Exception as e:
+            print(f"Помилка під час конвертації: {e}")
+            return e
 
     def split_string(self, text):
         pattern = r'\w+|\s*[^\w\s]+\s*|\s+'
@@ -70,7 +109,7 @@ class Model:
         return m
 
     def calculate_standard_deviation(self, d, word):
-        sd = 1.318 + 0.000518 * d ** 3
+        sd = 1.318 + 0.000518 * d  ** 3
         # print(f"For word <{word}> standard deviation = {round(sd, 3)}")
         return sd
 
@@ -80,6 +119,7 @@ class Model:
         zn = 2 * (sd * sd)
         prob = 1 / q * math.exp(-ch / zn)
         return prob
+
 
     def calculate_probability_landing(self, target_word, rest_letters):
         d = self.calculate_launch_distance(target_word, rest_letters)
@@ -127,7 +167,6 @@ class Model:
 
     def make_refixation(self, word, loc):
         time = self.calculate_mean_delay(word, loc)
-        print(f"Time for delay refixation = {round(time, 3)}")
         return time
 
     def calculate_mean_delay(self, word, loc):
@@ -141,16 +180,14 @@ class Model:
         return m
 
     def calculate_time_reading(self, word, loc, most_freq_word, frequency_word):
-        print("Calculating time recognizing...")
         time_needed = self.calculate_lex_ident_letter(word, loc, most_freq_word, frequency_word)
-        print(f"For word <{word}> time, needed to read = {round(time_needed, 3)}")
         return time_needed
 
     def calculate_lex_ident_general(self, word, biggest_freq, frequency_word):
         base5 = 150
-        if frequency_word == "not found!":
-            print(f"The word <{word}> was not found!")
+        if isinstance(frequency_word, str):
             return 0
+        print(frequency_word)
         frequency_word /= biggest_freq
         word_length = len(word)
         m_ = base5 + 15 * (word_length - 5) + 40 * (1 - frequency_word)
@@ -170,7 +207,6 @@ class Model:
         keys = list(dict_probability.keys())
         values = list(dict_probability.values())
         chosen_key = random.choices(keys, weights=values, k=1)[0]
-        print(f"Index <{chosen_key}> was chose!")
         return chosen_key
 
     def calculate_sd(self, m):
@@ -192,4 +228,3 @@ class Model:
         tg_alpha = a / b
         amplitude = int(math.atan(tg_alpha) * 180 / math.pi)
         return amplitude
-

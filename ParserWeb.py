@@ -3,9 +3,10 @@ from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
 import re
+
+from webdriver_manager.chrome import ChromeDriverManager
+
 from TextSpan import TextSpanPDF
 from selenium.common.exceptions import StaleElementReferenceException
 
@@ -15,15 +16,21 @@ class ParserWeb:
         self.list_spans = []
 
     def parse_webpage(self, url):
-        options = Options()
+        from selenium import webdriver
+        from webdriver_manager.chrome import ChromeDriverManager
+        from selenium.webdriver.chrome.service import Service
+
+        options = webdriver.ChromeOptions()
         options.add_argument("--headless")
         options.add_argument("--disable-gpu")
         options.add_argument("--no-sandbox")
         options.add_argument("--disable-dev-shm-usage")
         options.add_argument("--window-size=1920x1080")
         options.add_argument("--start-maximized")
-        service = Service('C:/chr-drv/chromedriver.exe')
-        driver = webdriver.Chrome(service=service, options=options)
+
+        # Використання webdriver-manager для автоматичного завантаження актуального ChromeDriver
+        driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
+
         driver.get(url)
 
         driver.execute_script(r"""
@@ -50,20 +57,12 @@ class ParserWeb:
             wrapTextNodesInSpan(document.body);
         """)
 
-        elements = WebDriverWait(driver, 10).until(
-            EC.presence_of_all_elements_located((By.CLASS_NAME, "word"))
-        )
+        elements = driver.find_elements(By.CLASS_NAME, "word")
 
         for elem in elements:
             try:
                 text = elem.text.strip()
-
-                # Фільтрація тексту з атрибутами, як src=, href=, або URL
-                if text and len(text) > 1 and not re.match(r'^[\s.,!?;:"(){}\[\]<>/]+$', text):
-                    # Фільтрація за наявністю "src=" або URL
-                    if '=' in text or '<' in text or '>' in text or '/' in text or re.search(r'http[s]?://', text):
-                        continue  # Пропускаємо ці елементи
-
+                if text:
                     text = text.rstrip(".,!?;:\"(){}[]")
                     style = self.get_style_properties(driver, elem)
                     font_size = self.extract_font_size(style.get("fontSize", ""))
@@ -83,11 +82,11 @@ class ParserWeb:
                     print(f"Text: {text}, Font Family: {font_family}")
 
             except StaleElementReferenceException:
+                print("StaleElementReferenceException caught, skipping this element")
                 continue
 
         driver.quit()
         return self.list_spans
-
 
     def get_style_properties(self, driver, element):
         script = r"""
