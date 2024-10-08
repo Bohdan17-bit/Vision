@@ -19,6 +19,11 @@ class Model:
     standard_deviation_latency = 50
 
     distance_to_display = 0
+    width_px = 0
+    height_px = 0
+    DPI = 0
+    diagonal_inches = 0
+
     path = ""
     PPI = 0
 
@@ -39,12 +44,18 @@ class Model:
     def set_distance_to_display(self, distance_in_cm):
         self.distance_to_display = distance_in_cm
 
-    def calculate_ppi(self, width_px, height_px, diagonal_inches):
-        diagonal_pixels = math.sqrt((width_px * width_px + height_px * height_px))
-        return diagonal_pixels / diagonal_inches
+    def calculate_ppi(self):
+        diagonal_pixels = math.sqrt((self.width_px * self.width_px + self.height_px * self.height_px))
+        self.PPI = diagonal_pixels / self.diagonal_inches
 
-    def set_ppi(self, width_px, height_px, diagonal_inches):
-        self.PPI = self.calculate_ppi(width_px, height_px, diagonal_inches)
+    def set_diagonal_inches(self, size_in_inches):
+        self.diagonal_inches = size_in_inches
+
+    def set_width_px(self, width):
+        self.width_px = width
+
+    def set_height_px(self, height):
+        self.height_px = height
 
     def set_path(self, user_path):
         self.path = user_path

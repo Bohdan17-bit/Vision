@@ -21,39 +21,44 @@ class ParserWeb:
         from selenium.webdriver.chrome.service import Service
 
         options = webdriver.ChromeOptions()
-        options.add_argument("--headless")
+        options.add_argument("--headless")  # Працюємо у фоновому режимі
         options.add_argument("--disable-gpu")
         options.add_argument("--no-sandbox")
         options.add_argument("--disable-dev-shm-usage")
-        options.add_argument("--window-size=1920x1080")
-        options.add_argument("--start-maximized")
+        options.add_argument("--disable-software-rasterizer")
+        options.add_argument('--disable-features=TrustedTypes')  # Вимикаємо Trusted Types
+        options.add_argument("--remote-debugging-port=9222")
 
-        # Використання webdriver-manager для автоматичного завантаження актуального ChromeDriver
+        # Створюємо драйвер із заданими опціями
         driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
 
+        # Завантажуємо сторінку
         driver.get(url)
 
+        # Оновлений скрипт для роботи з текстом
         driver.execute_script(r"""
             function wrapTextNodesInSpan(element) {
                 element.childNodes.forEach(child => {
                     if (child.nodeType === Node.TEXT_NODE && child.textContent.trim() !== '') {
                         const parts = child.textContent.split(/(\s+|[.,!?;:"(){}\[\]])/);
-                        const spanElements = parts.map(part => {
-                            if (part.trim() !== '') {
-                                return `<span class="word">${part}</span>`;
-                            } else {
-                                return part;
-                            }
-                        }).join('');
                         const spanContainer = document.createElement('span');
-                        spanContainer.innerHTML = spanElements;
+                        parts.forEach(part => {
+                            if (part.trim() !== '') {
+                                const spanElement = document.createElement('span');
+                                spanElement.classList.add('word');
+                                spanElement.textContent = part;
+                                spanContainer.appendChild(spanElement);
+                            } else {
+                                const textNode = document.createTextNode(part);
+                                spanContainer.appendChild(textNode);
+                            }
+                        });
                         element.replaceChild(spanContainer, child);
                     } else if (child.nodeType === Node.ELEMENT_NODE) {
                         wrapTextNodesInSpan(child);
                     }
                 });
             }
-
             wrapTextNodesInSpan(document.body);
         """)
 
@@ -88,19 +93,6 @@ class ParserWeb:
         driver.quit()
         return self.list_spans
 
-    def get_style_properties(self, driver, element):
-        script = r"""
-        const elem = arguments[0];
-        const style = window.getComputedStyle(elem);
-        return {
-            fontSize: style.fontSize,
-            fontWeight: style.fontWeight,
-            fontStyle: style.fontStyle,
-            color: style.color,
-            fontFamily: style.fontFamily
-        };
-        """
-        return driver.execute_script(script, element)
 
     def get_active_font_family(self, driver, element):
         script = r"""
@@ -115,6 +107,35 @@ class ParserWeb:
         }
         return style.fontFamily.split(',')[0].trim().replace(/['"]/g, ''); 
         """
+        return driver.execute_script(script, element)
+
+    def get_style_properties(self, driver, element):
+        script = r"""
+         const elem = arguments[0];
+         const style = window.getComputedStyle(elem);
+         return {
+             fontSize: style.fontSize,
+             fontWeight: style.fontWeight,
+             fontStyle: style.fontStyle,
+             color: style.color,
+             fontFamily: style.fontFamily
+         };
+         """
+        return driver.execute_script(script, element)
+
+    def get_active_font_family(self, driver, element):
+        script = r"""
+         const elem = arguments[0];
+         const style = window.getComputedStyle(elem);
+         const fontFamilyList = style.fontFamily.split(',');
+         for (const font of fontFamilyList) {
+             const fontName = font.trim().replace(/['"]/g, ''); 
+             if (document.fonts.check(`1em ${fontName}`)) {
+                 return fontName;
+             }
+         }
+         return style.fontFamily.split(',')[0].trim().replace(/['"]/g, ''); 
+         """
         return driver.execute_script(script, element)
 
     def extract_font_size(self, font_size_str):
@@ -137,7 +158,7 @@ class ParserWeb:
 
     def get_element_coordinates(self, driver, element):
         script = r"""
-        const rect = arguments[0].getBoundingClientRect();
-        return [rect.left, rect.top, rect.right, rect.bottom];
-        """
+         const rect = arguments[0].getBoundingClientRect();
+         return [rect.left, rect.top, rect.right, rect.bottom];
+         """
         return driver.execute_script(script, element)
