@@ -33,12 +33,18 @@ class Model:
         self.parserPDF = ParserPDF()
         self.parserWeb = ParserWeb()
 
+    def reset_results(self):
+        self.__full_time_to_read = 0
+        self.__full_time_standard_deviation = 0
+
     def read_text_from_pdf(self):
+        self.reset_results()
         if not os.path.isfile(self.path):
             raise FileNotFoundError(f"The file {self.path} does not exist.")
         self.list_text_spans = self.parserPDF.start(self.path)
 
     def read_text_from_site(self, url):
+        self.reset_results()
         self.list_text_spans = self.parserWeb.parse_webpage(url)
 
     def set_distance_to_display(self, distance_in_cm):
@@ -114,14 +120,14 @@ class Model:
         # print(f"For word <{next_word}> d = {launch_distance}")
         return launch_distance
 
-    def calculate_average_landing_position(self, word, d):
-        m = 3.3 + 0.49 * d
+    def calculate_average_landing_position(self, word, d, k):
+        print(word, d, k)
+        m = 3.3 + 0.49 * d * k
         # print(f"For word <{word}> m = {round(m, 3)}")
         return m
 
     def calculate_standard_deviation(self, d, word):
-        sd = 1.318 + 0.000518 * d  ** 3
-        # print(f"For word <{word}> standard deviation = {round(sd, 3)}")
+        sd = 1.318 + 0.000518 * d ** 3
         return sd
 
     def calculate_probability_letter_landing(self, x, m, sd):
@@ -132,9 +138,9 @@ class Model:
         return prob
 
 
-    def calculate_probability_landing(self, target_word, rest_letters):
+    def calculate_probability_landing(self, target_word, rest_letters, k):
         d = self.calculate_launch_distance(target_word, rest_letters)
-        m = self.calculate_average_landing_position(target_word, d)
+        m = self.calculate_average_landing_position(target_word, d, k)
         sd = self.calculate_standard_deviation(d, target_word)
         word_length = len(target_word)
         center_pos = word_length / 2

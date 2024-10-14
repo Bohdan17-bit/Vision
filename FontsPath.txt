@@ -1,0 +1,342 @@
+Bodoni MT C:\Windows\Fonts\BOD_R.TTF
+Harlow Solid Italic C:\Windows\Fonts\HARLOWSI.TTF
+Leelawadee UI C:\Windows\Fonts\LeelUIsl.ttf
+Corbel C:\Windows\Fonts\corbelb.ttf
+Dubai C:\Windows\Fonts\DUBAI-LIGHT.TTF
+Lucida Bright C:\Windows\Fonts\LBRITEDI.TTF
+Microsoft JhengHei C:\Windows\Fonts\msjhl.ttc
+Lucida Sans Typewriter C:\Windows\Fonts\LTYPEB.TTF
+Lucida Console C:\Windows\Fonts\lucon.ttf
+Jokerman C:\Windows\Fonts\JOKERMAN.TTF
+Imprint MT Shadow C:\Windows\Fonts\IMPRISHA.TTF
+Segoe UI C:\Windows\Fonts\seguibli.ttf
+Ebrima C:\Windows\Fonts\ebrima.ttf
+Britannic Bold C:\Windows\Fonts\BRITANIC.TTF
+Microsoft Tai Le C:\Windows\Fonts\taile.ttf
+Lucida Sans Typewriter C:\Windows\Fonts\LTYPE.TTF
+Calisto MT C:\Windows\Fonts\CALISTB.TTF
+Baskerville Old Face C:\Windows\Fonts\BASKVILL.TTF
+Bookman Old Style C:\Windows\Fonts\BOOKOSBI.TTF
+Gill Sans MT C:\Windows\Fonts\GILI____.TTF
+Trebuchet MS C:\Windows\Fonts\trebucit.ttf
+Verdana C:\Windows\Fonts\verdanai.ttf
+Microsoft YaHei C:\Windows\Fonts\msyhl.ttc
+High Tower Text C:\Windows\Fonts\HTOWERT.TTF
+Berlin Sans FB Demi C:\Windows\Fonts\BRLNSDB.TTF
+Impact C:\Windows\Fonts\impact.ttf
+Broadway C:\Windows\Fonts\BROADW.TTF
+French Script MT C:\Windows\Fonts\FRSCRIPT.TTF
+Constantia C:\Windows\Fonts\constan.ttf
+Kristen ITC C:\Windows\Fonts\ITCKRIST.TTF
+Sitka C:\Windows\Fonts\SitkaVF.ttf
+Tahoma C:\Windows\Fonts\tahomabd.ttf
+Lucida Fax C:\Windows\Fonts\LFAXI.TTF
+Microsoft JhengHei C:\Windows\Fonts\msjh.ttc
+Lucida Fax C:\Windows\Fonts\LFAXD.TTF
+Century Gothic C:\Windows\Fonts\GOTHICI.TTF
+Microsoft New Tai Lue C:\Windows\Fonts\ntailu.ttf
+Colonna MT C:\Windows\Fonts\COLONNA.TTF
+Cambria C:\Windows\Fonts\cambria.ttc
+Book Antiqua C:\Windows\Fonts\BKANT.TTF
+Gill Sans Ultra Bold Condensed C:\Windows\Fonts\GILLUBCD.TTF
+Footlight MT Light C:\Windows\Fonts\FTLTLT.TTF
+Corbel C:\Windows\Fonts\corbeli.ttf
+Rockwell C:\Windows\Fonts\ROCKBI.TTF
+Candara C:\Windows\Fonts\Candaraz.ttf
+Consolas C:\Windows\Fonts\consola.ttf
+Segoe UI C:\Windows\Fonts\segoeui.ttf
+Gadugi C:\Windows\Fonts\gadugi.ttf
+Onyx C:\Windows\Fonts\ONYX.TTF
+Segoe UI C:\Windows\Fonts\seguisb.ttf
+Californian FB C:\Windows\Fonts\CALIFI.TTF
+Matura MT Script Capitals C:\Windows\Fonts\MATURASC.TTF
+Nirmala UI C:\Windows\Fonts\NirmalaS.ttf
+Yu Gothic C:\Windows\Fonts\YuGothL.ttc
+Segoe Fluent Icons C:\Windows\Fonts\SegoeIcons.ttf
+Segoe UI C:\Windows\Fonts\segoeuiz.ttf
+Bodoni MT C:\Windows\Fonts\BOD_B.TTF
+Wingdings 3 C:\Windows\Fonts\WINGDNG3.TTF
+Tw Cen MT C:\Windows\Fonts\TCMI____.TTF
+Gadugi C:\Windows\Fonts\gadugib.ttf
+Century Gothic C:\Windows\Fonts\GOTHIC.TTF
+Brush Script MT C:\Windows\Fonts\BRUSHSCI.TTF
+Gill Sans MT C:\Windows\Fonts\GILB____.TTF
+Berlin Sans FB C:\Windows\Fonts\BRLNSB.TTF
+Microsoft JhengHei C:\Windows\Fonts\msjhbd.ttc
+MingLiU-ExtB C:\Windows\Fonts\mingliub.ttc
+Cascadia Mono C:\Windows\Fonts\CascadiaMono.ttf
+Arial C:\Windows\Fonts\arial.ttf
+Berlin Sans FB C:\Windows\Fonts\BRLNSR.TTF
+Showcard Gothic C:\Windows\Fonts\SHOWG.TTF
+Georgia C:\Windows\Fonts\georgia.ttf
+Freestyle Script C:\Windows\Fonts\FREESCPT.TTF
+Corbel C:\Windows\Fonts\corbel.ttf
+Bodoni MT C:\Windows\Fonts\BOD_BI.TTF
+Bernard MT Condensed C:\Windows\Fonts\BERNHC.TTF
+Curlz MT C:\Windows\Fonts\CURLZ___.TTF
+Palatino Linotype C:\Windows\Fonts\palab.ttf
+Times New Roman C:\Windows\Fonts\timesbd.ttf
+Gill Sans MT Condensed C:\Windows\Fonts\GILC____.TTF
+Dubai C:\Windows\Fonts\DUBAI-BOLD.TTF
+Segoe UI Symbol C:\Windows\Fonts\seguisym.ttf
+Microsoft YaHei C:\Windows\Fonts\msyh.ttc
+Comic Sans MS C:\Windows\Fonts\comici.ttf
+Blackadder ITC C:\Windows\Fonts\ITCBLKAD.TTF
+Courier New C:\Windows\Fonts\courbi.ttf
+Rockwell Extra Bold C:\Windows\Fonts\ROCKEB.TTF
+MT Extra C:\Windows\Fonts\MTEXTRA.TTF
+Segoe UI C:\Windows\Fonts\segoeuil.ttf
+Book Antiqua C:\Windows\Fonts\ANTQUABI.TTF
+Arial Rounded MT Bold C:\Windows\Fonts\ARLRDBD.TTF
+Myanmar Text C:\Windows\Fonts\mmrtextb.ttf
+Niagara Solid C:\Windows\Fonts\NIAGSOL.TTF
+Arial C:\Windows\Fonts\ARIALNI.TTF
+Rage Italic C:\Windows\Fonts\RAGE.TTF
+Rockwell C:\Windows\Fonts\ROCKI.TTF
+Segoe Print C:\Windows\Fonts\segoepr.ttf
+Playbill C:\Windows\Fonts\PLAYBILL.TTF
+Microsoft Yi Baiti C:\Windows\Fonts\msyi.ttf
+Lucida Calligraphy C:\Windows\Fonts\LCALLIG.TTF
+Niagara Engraved C:\Windows\Fonts\NIAGENG.TTF
+Comic Sans MS C:\Windows\Fonts\comic.ttf
+Franklin Gothic Medium C:\Windows\Fonts\framdit.ttf
+Lucida Fax C:\Windows\Fonts\LFAX.TTF
+Book Antiqua C:\Windows\Fonts\ANTQUAI.TTF
+Tw Cen MT C:\Windows\Fonts\TCM_____.TTF
+Magneto C:\Windows\Fonts\MAGNETOB.TTF
+Candara C:\Windows\Fonts\Candarai.ttf
+Yu Gothic C:\Windows\Fonts\YuGothM.ttc
+Bell MT C:\Windows\Fonts\BELL.TTF
+Cambria C:\Windows\Fonts\cambriab.ttf
+Corbel C:\Windows\Fonts\corbelz.ttf
+Papyrus C:\Windows\Fonts\PAPYRUS.TTF
+Wingdings C:\Windows\Fonts\wingding.ttf
+Leelawadee UI C:\Windows\Fonts\LeelaUIb.ttf
+Sitka C:\Windows\Fonts\SitkaVF-Italic.ttf
+Malgun Gothic C:\Windows\Fonts\malgunbd.ttf
+Tw Cen MT C:\Windows\Fonts\TCB_____.TTF
+Calisto MT C:\Windows\Fonts\CALIST.TTF
+Microsoft PhagsPa C:\Windows\Fonts\phagspa.ttf
+Franklin Gothic Medium Cond C:\Windows\Fonts\FRAMDCN.TTF
+Modern No. 20 C:\Windows\Fonts\MOD20.TTF
+Palace Script MT C:\Windows\Fonts\PALSCRI.TTF
+Bodoni MT C:\Windows\Fonts\BOD_BLAI.TTF
+Bookman Old Style C:\Windows\Fonts\BOOKOSB.TTF
+Edwardian Script ITC C:\Windows\Fonts\ITCEDSCR.TTF
+Segoe UI Emoji C:\Windows\Fonts\seguiemj.ttf
+Franklin Gothic Medium C:\Windows\Fonts\framd.ttf
+Courier New C:\Windows\Fonts\cour.ttf
+Segoe UI Variable C:\Windows\Fonts\SegUIVar.ttf
+Informal Roman C:\Windows\Fonts\INFROMAN.TTF
+Franklin Gothic Heavy C:\Windows\Fonts\FRAHV.TTF
+Calibri C:\Windows\Fonts\calibrii.ttf
+Sylfaen C:\Windows\Fonts\sylfaen.ttf
+Agency FB C:\Windows\Fonts\AGENCYB.TTF
+Palatino Linotype C:\Windows\Fonts\palabi.ttf
+Yu Gothic C:\Windows\Fonts\YuGothB.ttc
+Elephant C:\Windows\Fonts\ELEPHNTI.TTF
+Verdana C:\Windows\Fonts\verdana.ttf
+Microsoft Sans Serif C:\Windows\Fonts\micross.ttf
+Calibri C:\Windows\Fonts\calibril.ttf
+Myanmar Text C:\Windows\Fonts\mmrtext.ttf
+Constantia C:\Windows\Fonts\constanb.ttf
+Times New Roman C:\Windows\Fonts\timesbi.ttf
+Book Antiqua C:\Windows\Fonts\ANTQUAB.TTF
+Calibri C:\Windows\Fonts\calibrib.ttf
+Castellar C:\Windows\Fonts\CASTELAR.TTF
+Century Schoolbook C:\Windows\Fonts\SCHLBKB.TTF
+Trebuchet MS C:\Windows\Fonts\trebuc.ttf
+Stencil C:\Windows\Fonts\STENCIL.TTF
+Arial C:\Windows\Fonts\ARIALNBI.TTF
+Bookman Old Style C:\Windows\Fonts\BOOKOS.TTF
+Lucida Bright C:\Windows\Fonts\LBRITEI.TTF
+Wingdings 2 C:\Windows\Fonts\WINGDNG2.TTF
+Tw Cen MT Condensed C:\Windows\Fonts\TCCM____.TTF
+Bodoni MT C:\Windows\Fonts\BOD_CI.TTF
+Constantia C:\Windows\Fonts\constanz.ttf
+Tahoma C:\Windows\Fonts\tahoma.ttf
+Eras Bold ITC C:\Windows\Fonts\ERASBD.TTF
+Goudy Stout C:\Windows\Fonts\GOUDYSTO.TTF
+Lucida Sans Typewriter C:\Windows\Fonts\LTYPEO.TTF
+MS Outlook C:\Windows\Fonts\OUTLOOK.TTF
+Rockwell Condensed C:\Windows\Fonts\ROCCB___.TTF
+Sans Serif Collection C:\Windows\Fonts\SansSerifCollection.ttf
+Garamond C:\Windows\Fonts\GARAIT.TTF
+Verdana C:\Windows\Fonts\verdanaz.ttf
+Nirmala UI C:\Windows\Fonts\NirmalaB.ttf
+Goudy Old Style C:\Windows\Fonts\GOUDOSB.TTF
+Bell MT C:\Windows\Fonts\BELLI.TTF
+Lucida Bright C:\Windows\Fonts\LBRITE.TTF
+Algerian C:\Windows\Fonts\ALGER.TTF
+Leelawadee C:\Windows\Fonts\LEELAWAD.TTF
+MS Gothic C:\Windows\Fonts\msgothic.ttc
+Javanese Text C:\Windows\Fonts\javatext.ttf
+Parchment C:\Windows\Fonts\PARCHM.TTF
+Palatino Linotype C:\Windows\Fonts\pala.ttf
+Segoe UI C:\Windows\Fonts\segoeuisl.ttf
+Arial C:\Windows\Fonts\ARIALNB.TTF
+Candara C:\Windows\Fonts\Candarali.ttf
+Perpetua Titling MT C:\Windows\Fonts\PERTILI.TTF
+Californian FB C:\Windows\Fonts\CALIFB.TTF
+Bodoni MT C:\Windows\Fonts\BOD_PSTC.TTF
+Cooper Black C:\Windows\Fonts\COOPBL.TTF
+Gloucester MT Extra Condensed C:\Windows\Fonts\GLECB.TTF
+Segoe UI C:\Windows\Fonts\segoeuii.ttf
+Bahnschrift C:\Windows\Fonts\bahnschrift.ttf
+Franklin Gothic Demi C:\Windows\Fonts\FRADM.TTF
+Bodoni MT C:\Windows\Fonts\BOD_CB.TTF
+Courier New C:\Windows\Fonts\couri.ttf
+Georgia C:\Windows\Fonts\georgiab.ttf
+Century Gothic C:\Windows\Fonts\GOTHICBI.TTF
+Century Schoolbook C:\Windows\Fonts\SCHLBKI.TTF
+Copperplate Gothic Light C:\Windows\Fonts\COPRGTL.TTF
+Lucida Bright C:\Windows\Fonts\LBRITED.TTF
+Chiller C:\Windows\Fonts\CHILLER.TTF
+Copperplate Gothic Bold C:\Windows\Fonts\COPRGTB.TTF
+Old English Text MT C:\Windows\Fonts\OLDENGL.TTF
+Leelawadee C:\Windows\Fonts\LEELAWDB.TTF
+Forte C:\Windows\Fonts\FORTE.TTF
+Centaur C:\Windows\Fonts\CENTAUR.TTF
+Century Schoolbook C:\Windows\Fonts\SCHLBKBI.TTF
+Lucida Sans C:\Windows\Fonts\LSANSDI.TTF
+Verdana C:\Windows\Fonts\verdanab.ttf
+Gill Sans MT Ext Condensed Bold C:\Windows\Fonts\GLSNECB.TTF
+SimSun-ExtG C:\Windows\Fonts\SimsunExtG.ttf
+Goudy Old Style C:\Windows\Fonts\GOUDOSI.TTF
+Calisto MT C:\Windows\Fonts\CALISTI.TTF
+Wide Latin C:\Windows\Fonts\LATINWD.TTF
+Agency FB C:\Windows\Fonts\AGENCYR.TTF
+OCR A Extended C:\Windows\Fonts\OCRAEXT.TTF
+Poor Richard C:\Windows\Fonts\POORICH.TTF
+Consolas C:\Windows\Fonts\consolaz.ttf
+Times New Roman C:\Windows\Fonts\times.ttf
+Pristina C:\Windows\Fonts\PRISTINA.TTF
+Malgun Gothic C:\Windows\Fonts\malgun.ttf
+Dubai C:\Windows\Fonts\DUBAI-REGULAR.TTF
+Perpetua C:\Windows\Fonts\PERI____.TTF
+Segoe UI Historic C:\Windows\Fonts\seguihis.ttf
+Tw Cen MT Condensed C:\Windows\Fonts\TCCB____.TTF
+SimSun-ExtB C:\Windows\Fonts\simsunb.ttf
+Cambria C:\Windows\Fonts\cambriaz.ttf
+Perpetua C:\Windows\Fonts\PERB____.TTF
+Century Gothic C:\Windows\Fonts\GOTHICB.TTF
+Gill Sans MT C:\Windows\Fonts\GIL_____.TTF
+Script MT Bold C:\Windows\Fonts\SCRIPTBL.TTF
+Microsoft Uighur C:\Windows\Fonts\MSUIGHUR.TTF
+Gabriola C:\Windows\Fonts\Gabriola.ttf
+Eras Demi ITC C:\Windows\Fonts\ERASDEMI.TTF
+Calisto MT C:\Windows\Fonts\CALISTBI.TTF
+Franklin Gothic Demi Cond C:\Windows\Fonts\FRADMCN.TTF
+Elephant C:\Windows\Fonts\ELEPHNT.TTF
+Tempus Sans ITC C:\Windows\Fonts\TEMPSITC.TTF
+Georgia C:\Windows\Fonts\georgiaz.ttf
+Mistral C:\Windows\Fonts\MISTRAL.TTF
+Bodoni MT C:\Windows\Fonts\BOD_CR.TTF
+Trebuchet MS C:\Windows\Fonts\trebucbd.ttf
+Georgia C:\Windows\Fonts\georgiai.ttf
+Candara C:\Windows\Fonts\Candarab.ttf
+Segoe MDL2 Assets C:\Windows\Fonts\segmdl2.ttf
+MV Boli C:\Windows\Fonts\mvboli.ttf
+Ravie C:\Windows\Fonts\RAVIE.TTF
+Garamond C:\Windows\Fonts\GARA.TTF
+SimSun C:\Windows\Fonts\simsun.ttc
+Symbol C:\Windows\Fonts\symbol.ttf
+Engravers MT C:\Windows\Fonts\ENGR.TTF
+Bauhaus 93 C:\Windows\Fonts\BAUHS93.TTF
+Arial C:\Windows\Fonts\ariali.ttf
+Bodoni MT C:\Windows\Fonts\BOD_CBI.TTF
+Bookshelf Symbol 7 C:\Windows\Fonts\BSSYM7.TTF
+Lucida Sans C:\Windows\Fonts\LSANSI.TTF
+Haettenschweiler C:\Windows\Fonts\HATTEN.TTF
+Ink Free C:\Windows\Fonts\Inkfree.ttf
+Microsoft PhagsPa C:\Windows\Fonts\phagspab.ttf
+Arial C:\Windows\Fonts\arialbi.ttf
+Segoe Script C:\Windows\Fonts\segoesc.ttf
+Arial C:\Windows\Fonts\ARIALN.TTF
+Lucida Sans Unicode C:\Windows\Fonts\l_10646.ttf
+Franklin Gothic Book C:\Windows\Fonts\FRABK.TTF
+Maiandra GD C:\Windows\Fonts\MAIAN.TTF
+Kunstler Script C:\Windows\Fonts\KUNSTLER.TTF
+Franklin Gothic Demi C:\Windows\Fonts\FRADMIT.TTF
+Consolas C:\Windows\Fonts\consolai.ttf
+Rockwell C:\Windows\Fonts\ROCKB.TTF
+Webdings C:\Windows\Fonts\webdings.ttf
+Times New Roman C:\Windows\Fonts\timesi.ttf
+Perpetua Titling MT C:\Windows\Fonts\PERTIBD.TTF
+Arial C:\Windows\Fonts\ariblk.ttf
+Juice ITC C:\Windows\Fonts\JUICE___.TTF
+Calibri C:\Windows\Fonts\calibri.ttf
+Cascadia Code C:\Windows\Fonts\CascadiaCode.ttf
+Lucida Handwriting C:\Windows\Fonts\LHANDW.TTF
+Segoe UI C:\Windows\Fonts\seguisli.ttf
+Microsoft Uighur C:\Windows\Fonts\MSUIGHUB.TTF
+Monotype Corsiva C:\Windows\Fonts\MTCORSVA.TTF
+Ebrima C:\Windows\Fonts\ebrimabd.ttf
+Courier New C:\Windows\Fonts\courbd.ttf
+High Tower Text C:\Windows\Fonts\HTOWERTI.TTF
+Microsoft New Tai Lue C:\Windows\Fonts\ntailub.ttf
+Vivaldi C:\Windows\Fonts\VIVALDII.TTF
+Viner Hand ITC C:\Windows\Fonts\VINERITC.TTF
+Bodoni MT C:\Windows\Fonts\BOD_BLAR.TTF
+Perpetua C:\Windows\Fonts\PER_____.TTF
+Segoe UI C:\Windows\Fonts\segoeuib.ttf
+Lucida Sans Typewriter C:\Windows\Fonts\LTYPEBO.TTF
+Calibri C:\Windows\Fonts\calibriz.ttf
+Leelawadee UI C:\Windows\Fonts\LeelawUI.ttf
+Bradley Hand ITC C:\Windows\Fonts\BRADHITC.TTF
+Segoe UI C:\Windows\Fonts\seguisbi.ttf
+Century C:\Windows\Fonts\CENTURY.TTF
+Franklin Gothic Heavy C:\Windows\Fonts\FRAHVIT.TTF
+Nirmala UI C:\Windows\Fonts\Nirmala.ttf
+Bell MT C:\Windows\Fonts\BELLB.TTF
+Dubai C:\Windows\Fonts\DUBAI-MEDIUM.TTF
+Consolas C:\Windows\Fonts\consolab.ttf
+HoloLens MDL2 Assets C:\Windows\Fonts\holomdl2.ttf
+Perpetua C:\Windows\Fonts\PERBI___.TTF
+MS Reference Sans Serif C:\Windows\Fonts\REFSAN.TTF
+Tw Cen MT Condensed Extra Bold C:\Windows\Fonts\TCCEB.TTF
+Snap ITC C:\Windows\Fonts\SNAP____.TTF
+Mongolian Baiti C:\Windows\Fonts\monbaiti.ttf
+Bodoni MT C:\Windows\Fonts\BOD_I.TTF
+Segoe Print C:\Windows\Fonts\segoeprb.ttf
+Californian FB C:\Windows\Fonts\CALIFR.TTF
+Eras Light ITC C:\Windows\Fonts\ERASLGHT.TTF
+Constantia C:\Windows\Fonts\constani.ttf
+Lucida Fax C:\Windows\Fonts\LFAXDI.TTF
+Trebuchet MS C:\Windows\Fonts\trebucbi.ttf
+Yu Gothic C:\Windows\Fonts\YuGothR.ttc
+Segoe UI C:\Windows\Fonts\seguili.ttf
+Arial C:\Windows\Fonts\arialbd.ttf
+Rockwell Condensed C:\Windows\Fonts\ROCC____.TTF
+Vladimir Script C:\Windows\Fonts\VLADIMIR.TTF
+Felix Titling C:\Windows\Fonts\FELIXTI.TTF
+Lucida Sans C:\Windows\Fonts\LSANSD.TTF
+Malgun Gothic C:\Windows\Fonts\malgunsl.ttf
+Gill Sans Ultra Bold C:\Windows\Fonts\GILSANUB.TTF
+Corbel C:\Windows\Fonts\corbell.ttf
+Century Schoolbook C:\Windows\Fonts\CENSCBK.TTF
+Segoe UI C:\Windows\Fonts\seguibl.ttf
+Calibri C:\Windows\Fonts\calibrili.ttf
+Candara C:\Windows\Fonts\Candara.ttf
+Garamond C:\Windows\Fonts\GARABD.TTF
+Franklin Gothic Book C:\Windows\Fonts\FRABKIT.TTF
+Segoe Script C:\Windows\Fonts\segoescb.ttf
+Candara C:\Windows\Fonts\Candaral.ttf
+Goudy Old Style C:\Windows\Fonts\GOUDOS.TTF
+Gigi C:\Windows\Fonts\GIGI.TTF
+Tw Cen MT C:\Windows\Fonts\TCBI____.TTF
+Eras Medium ITC C:\Windows\Fonts\ERASMD.TTF
+Bookman Old Style C:\Windows\Fonts\BOOKOSI.TTF
+Comic Sans MS C:\Windows\Fonts\comicz.ttf
+Harrington C:\Windows\Fonts\HARNGTON.TTF
+Lucida Sans C:\Windows\Fonts\LSANS.TTF
+Corbel C:\Windows\Fonts\corbelli.ttf
+Rockwell C:\Windows\Fonts\ROCK.TTF
+Palatino Linotype C:\Windows\Fonts\palai.ttf
+MS Reference Specialty C:\Windows\Fonts\REFSPCL.TTF
+Cambria C:\Windows\Fonts\cambriai.ttf
+Gill Sans MT C:\Windows\Fonts\GILBI___.TTF
+Comic Sans MS C:\Windows\Fonts\comicbd.ttf
+Microsoft YaHei C:\Windows\Fonts\msyhbd.ttc
+Microsoft Tai Le C:\Windows\Fonts\taileb.ttf
+Microsoft Himalaya C:\Windows\Fonts\himalaya.ttf

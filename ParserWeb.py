@@ -77,7 +77,7 @@ class ParserWeb:
                     word_span = TextSpanPDF()
                     text = text.lower()
                     word_span.set_text(text)
-                    word_span.set_size_text(font_size)
+                    word_span.set_size_text(int(font_size))
                     word_span.set_background_color("")
                     word_span.set_color_text(color)
                     word_span.set_coords(x1, y1, x2, y2)

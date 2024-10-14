@@ -1,7 +1,7 @@
 import re
-
 from openpyxl import load_workbook
 
+from FontsManager import FontsManager
 from model import Model
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtWidgets import QFileDialog
@@ -17,6 +17,7 @@ class Worker(QThread):
     def __init__(self):
         super().__init__()
         self.freq_dict = FrequencyDictionary()
+        self.fontsManager = FontsManager()
         self.freq_dict.start()
         self.model = Model()
         self.words_spans = {}
@@ -28,12 +29,15 @@ class Worker(QThread):
 
     final_result = pyqtSignal(str)
 
+    def reset_results(self):
+        self.model.reset_results()
+
     def receive_data_from_ui(self, data):
         if data["width_px"] and data["height_px"] and data["distance_cm"] and data["diagonal_inches"]:
             self.model.set_width_px(int(data["width_px"]))
             self.model.set_height_px(int(data["height_px"]))
-            self.model.set_distance_to_display(int(data["distance_cm"]))
-            self.model.set_diagonal_inches(int(data["diagonal_inches"]))
+            self.model.set_distance_to_display(float(data["distance_cm"]))
+            self.model.set_diagonal_inches(float(data["diagonal_inches"]))
 
     def update_url(self, path):
         self.model.set_path(path)
@@ -44,6 +48,8 @@ class Worker(QThread):
     @pyqtSlot()
     def prepare_to_read(self):
 
+        self.reset_results()
+
         print("Починаємо обробку даних...")
 
         path = self.model.path
@@ -52,7 +58,7 @@ class Worker(QThread):
             self.data_signal.emit("Попередження", "Відсутній шлях до файлу чи веб-сторінки!")
             return
 
-        if url_is_correct(path) is not True:
+        if url_is_correct(path) is False:
             self.data_signal.emit("Попередження", "Сайт або файл не знайдено!")
             return
 
@@ -71,7 +77,13 @@ class Worker(QThread):
             self.progress_signal.emit("Частотний словник не знайдено!")
             return
 
-        if "http" in path or "https" in path:
+        if "html" in path or "htm" in path and "http" not in path and "https" not in path:
+            if url_is_correct(path) is not False:
+                self.model.set_path(path)
+                self.progress_signal.emit("Аналіз структури сайту...")
+                self.model.read_text_from_site(path)
+
+        elif "http" in path or "https" in path:
             self.model.set_path(path)
             self.progress_signal.emit("Аналіз структури сайту...")
             self.model.read_text_from_site(path)
@@ -90,6 +102,22 @@ class Worker(QThread):
 
         self.start_analyze()
 
+    def format_font_name(self, font_name):
+
+        if font_name is None:
+            return False, "Times New Roman"
+
+        # Форматуємо назву шрифту, додаючи пробіли перед великими літерами
+        formatted_name = re.sub(r'(?<!^)(?=[A-Z])', ' ', font_name)
+
+        # Видаляємо окремі літери (якщо вони стоять самостійно)
+        formatted_name = re.sub(r'\b[A-Z]\b', '', formatted_name)
+
+        # Прибираємо зайві пробіли
+        formatted_name = ' '.join(formatted_name.split())
+
+        return True, formatted_name
+
     def start_analyze(self):
 
         rest_letters = 0
@@ -107,14 +135,21 @@ class Worker(QThread):
 
                 time.sleep(0.05)
 
-                self.progress_signal.emit(f"Властивості шрифту : {word.font_span}, {int(word.size)}")
-
                 if rest_letters > 3:
                     rest_letters = 3
 
                 index_chose = 0
 
-                dict_probability = self.model.calculate_probability_landing(word.text_span, rest_letters)
+                word.size = int(word.size)
+                found, word.font_span = self.format_font_name(word.font_span)
+                9
+                if not found:
+                    self.progress_signal.emit(f"Шрифт не виявлено! Буде використано Times New Roman, 14")
+                else:
+                    self.progress_signal.emit(f"Властивості шрифту : {word.font_span}, {int(word.size)}")
+
+                coefficient = self.fontsManager.get_coefficient_font_letter(word.font_span, word.size, self.model.PPI)
+                dict_probability = self.model.calculate_probability_landing(word.text_span, rest_letters, coefficient)
 
                 self.progress_signal.emit(f"Розрахунок індекса слова : <{word.text_span}>")
 
@@ -186,12 +221,13 @@ class Worker(QThread):
 
             if word.distance_to_next_span > 0:
                 time_saccade = self.model.calculate_time_saccade(word.distance_to_next_span)
-                self.progress_signal.emit(f"Перехід на наступний блок... Необхідно часу {time_saccade} ms\n")
+                self.progress_signal.emit(f"\nПерехід на наступний блок... Необхідно часу {int(time_saccade)} ms\n")
                 self.model.increase_general_time(time_saccade)
 
         final_result = self.get_time_to_read(self.model.get_sum_time_reading(), self.model.get_sum_standard_deviation())
         self.final_result.emit(final_result)
         self.progress_signal.emit("Аналіз завершено.")
+        self.reset_results()
 
     def get_time_to_read(self, time, sd_time):
         min = time // 60000
@@ -224,8 +260,8 @@ class Worker(QThread):
 
 
 def url_is_correct(path):
-    if os.path.isfile(path):
-        return True
+    if os.path.exists(path):
+        return "file"
     if requests.head(path).status_code == 200:
-        return True
+        return "site"
     return False
