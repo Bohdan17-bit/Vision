@@ -7,7 +7,8 @@ import numpy as np
 from ParserWeb import ParserWeb
 from pdf_parser import ParserPDF
 import re
-from docx2pdf import convert
+from spire.doc import *
+from spire.doc.common import *
 import os
 
 
@@ -68,21 +69,31 @@ class Model:
 
     def convert_word_to_pdf(self, file_docx):
         try:
-            if not file_docx.lower().endswith(".docx"):
+            if not (file_docx.lower().endswith(".docx") or file_docx.lower().endswith(".doc")):
                 raise ValueError("Файл не має розширення .docx")
 
-            decoded_path = urllib.parse.unquote(file_docx)
+            try:
+                decoded_path = os.path.normpath(file_docx)
 
-            decoded_path = os.path.normpath(decoded_path)
+                document = Document()
+                print(f"Завантаження файлу: {decoded_path}")
+                document.LoadFromFile(decoded_path)
+                print("Файл завантажено")
 
-            new_name = os.path.splitext(decoded_path)[0] + ".pdf"
+                new_name = os.path.splitext(decoded_path)[0] + ".PDF"
 
-            convert(decoded_path, new_name)
+                document.SaveToFile(new_name, FileFormat.PDF)
+                document.Close()
 
-            self.set_path(new_name)
+                self.set_path(new_name)
 
-            print(f"Файл успішно конвертовано: {new_name}")
-            return new_name
+                print(f"Файл успішно конвертовано: {new_name}")
+                return new_name
+
+            except Exception as e:
+                print(f"Помилка під час обробки: {e}")
+                return e
+
         except Exception as e:
             print(f"Помилка під час конвертації: {e}")
             return e

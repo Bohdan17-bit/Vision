@@ -1,14 +1,11 @@
 import re
-from openpyxl import load_workbook
 
 from FontsManager import FontsManager
 from model import Model
-from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtWidgets import QFileDialog
+
 import os.path
 import requests
 from PyQt5.QtCore import pyqtSignal, pyqtSlot, QThread
-from PyQt5.QtWidgets import QMainWindow, QApplication, QPlainTextEdit, QVBoxLayout, QWidget
 import time
 from utils import FrequencyDictionary
 
@@ -102,8 +99,9 @@ class Worker(QThread):
 
         self.start_analyze()
 
-    def format_font_name(self, font_name):
+    import re
 
+    def format_font_name(self, font_name):
         if font_name is None:
             return False, "Times New Roman"
 
@@ -112,6 +110,9 @@ class Worker(QThread):
 
         # Видаляємо окремі літери (якщо вони стоять самостійно)
         formatted_name = re.sub(r'\b[A-Z]\b', '', formatted_name)
+
+        # Відсікаємо все після тире
+        formatted_name = re.split(r'\s*-\s*', formatted_name)[0]
 
         # Прибираємо зайві пробіли
         formatted_name = ' '.join(formatted_name.split())
@@ -142,7 +143,7 @@ class Worker(QThread):
 
                 word.size = int(word.size)
                 found, word.font_span = self.format_font_name(word.font_span)
-                9
+
                 if not found:
                     self.progress_signal.emit(f"Шрифт не виявлено! Буде використано Times New Roman, 14")
                 else:

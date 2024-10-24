@@ -1,15 +1,7 @@
-import json
-from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.common.by import By
-from selenium.webdriver.chrome.options import Options
 import re
-
-from webdriver_manager.chrome import ChromeDriverManager
-
-from TextSpan import TextSpanPDF
+from selenium.webdriver.common.by import By
 from selenium.common.exceptions import StaleElementReferenceException
-
+from TextSpan import TextSpanPDF
 
 class ParserWeb:
     def __init__(self):
@@ -21,21 +13,15 @@ class ParserWeb:
         from selenium.webdriver.chrome.service import Service
 
         options = webdriver.ChromeOptions()
-        options.add_argument("--headless")  # Працюємо у фоновому режимі
+        options.add_argument("--headless")
         options.add_argument("--disable-gpu")
         options.add_argument("--no-sandbox")
         options.add_argument("--disable-dev-shm-usage")
         options.add_argument("--disable-software-rasterizer")
-        options.add_argument('--disable-features=TrustedTypes')  # Вимикаємо Trusted Types
-        options.add_argument("--remote-debugging-port=9222")
 
-        # Створюємо драйвер із заданими опціями
         driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
-
-        # Завантажуємо сторінку
         driver.get(url)
 
-        # Оновлений скрипт для роботи з текстом
         driver.execute_script(r"""
             function wrapTextNodesInSpan(element) {
                 element.childNodes.forEach(child => {
@@ -68,6 +54,8 @@ class ParserWeb:
             try:
                 text = elem.text.strip()
                 if text:
+                    # Фільтруємо текст від тегів і атрибутів
+                    text = self.clean_html_tags(text)
                     text = text.rstrip(".,!?;:\"(){}[]")
                     style = self.get_style_properties(driver, elem)
                     font_size = self.extract_font_size(style.get("fontSize", ""))
@@ -93,6 +81,11 @@ class ParserWeb:
         driver.quit()
         return self.list_spans
 
+    # Функція для очищення тексту від тегів
+    def clean_html_tags(self, text):
+        # Регулярний вираз для видалення тегів і атрибутів
+        clean = re.compile('<.*?>')
+        return re.sub(clean, '', text)
 
     def get_active_font_family(self, driver, element):
         script = r"""
@@ -123,38 +116,11 @@ class ParserWeb:
          """
         return driver.execute_script(script, element)
 
-    def get_active_font_family(self, driver, element):
-        script = r"""
-         const elem = arguments[0];
-         const style = window.getComputedStyle(elem);
-         const fontFamilyList = style.fontFamily.split(',');
-         for (const font of fontFamilyList) {
-             const fontName = font.trim().replace(/['"]/g, ''); 
-             if (document.fonts.check(`1em ${fontName}`)) {
-                 return fontName;
-             }
-         }
-         return style.fontFamily.split(',')[0].trim().replace(/['"]/g, ''); 
-         """
-        return driver.execute_script(script, element)
-
     def extract_font_size(self, font_size_str):
         match = re.match(r"(\d+(\.\d+)?)px", font_size_str)
         if match:
             return float(match.group(1))
         return None
-
-    def extract_font_weight(self, font_weight_str):
-        try:
-            weight = int(font_weight_str)
-            if weight == 400:
-                return "normal"
-            elif weight == 700:
-                return "bold"
-            else:
-                return str(weight)
-        except ValueError:
-            return font_weight_str
 
     def get_element_coordinates(self, driver, element):
         script = r"""

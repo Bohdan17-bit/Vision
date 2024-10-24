@@ -1,7 +1,6 @@
-import re
 
 from PIL import ImageFont
-import json
+
 from jsonhandler import JSONHandler
 
 
@@ -115,11 +114,25 @@ class FontsManager:
         return width_cm, height_cm
 
     def calculate_size_letter(self, letter, font, size):
+        if size is None or size <= 0:
+            size = 14
+        if not font:
+            font = "Times New Roman"
+
+        if font not in self.dict_names_path:
+            font = "Times New Roman"
+
         complex_path = self.dict_names_path[font]
-        font = ImageFont.truetype(complex_path, size)
-        bbox = font.getbbox(letter)
+
+        if not letter:
+            raise ValueError("Потрібно передати символ для розрахунку.")
+
+        font_object = ImageFont.truetype(complex_path, size)
+        bbox = font_object.getbbox(letter)
         width_px = bbox[2] - bbox[0]
         height_px = bbox[3] - bbox[1]
+
         return width_px, height_px
+
 
 

@@ -1,4 +1,3 @@
-import json
 import fitz
 import re
 from TextSpan import TextSpanPDF
