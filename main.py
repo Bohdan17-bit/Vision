@@ -69,7 +69,7 @@ class Ui_MainWindow(QtWidgets.QMainWindow):  # Змінюємо нащадок �
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.ChooseFile_btn.sizePolicy().hasHeightForWidth())
         self.ChooseFile_btn.setSizePolicy(sizePolicy)
-        self.ChooseFile_btn.setMinimumSize(QtCore.QSize(0, 50))
+        self.ChooseFile_btn.setMinimumSize(QtCore.QSize(0, 70))
         font = QtGui.QFont()
         font.setPointSize(12)
         self.ChooseFile_btn.setFont(font)
@@ -253,7 +253,7 @@ class Ui_MainWindow(QtWidgets.QMainWindow):  # Змінюємо нащадок �
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.Start_btn.sizePolicy().hasHeightForWidth())
         self.Start_btn.setSizePolicy(sizePolicy)
-        self.Start_btn.setMinimumSize(QtCore.QSize(0, 50))
+        self.Start_btn.setMinimumSize(QtCore.QSize(0, 70))
         font = QtGui.QFont()
         font.setPointSize(12)
         self.Start_btn.setFont(font)
@@ -271,6 +271,19 @@ class Ui_MainWindow(QtWidgets.QMainWindow):  # Змінюємо нащадок �
         self.statusbar = QtWidgets.QStatusBar(MainWindow)
         self.statusbar.setObjectName("statusbar")
         MainWindow.setStatusBar(self.statusbar)
+
+        self.clear_button = QtWidgets.QPushButton("Очистити", self.centralwidget)
+        self.clear_button.setMinimumSize(QtCore.QSize(0, 70))
+        self.clear_button.setFont(QtGui.QFont("Segoe UI", 12))
+        self.clear_button.setStyleSheet("QPushButton { background-color: #4a90e2; color: black; }")
+
+        self.clear_button.clicked.connect(self.on_clear_button_clicked)
+
+        self.button_layout = QtWidgets.QHBoxLayout()
+        self.button_layout.addWidget(self.Start_btn)
+        self.button_layout.addWidget(self.clear_button)
+
+        self.gridLayout_2.addLayout(self.button_layout, 3, 0, 1, 1)
 
         self.retranslateUi(MainWindow)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
@@ -290,9 +303,22 @@ class Ui_MainWindow(QtWidgets.QMainWindow):  # Змінюємо нащадок �
         self.label_5.setText(_translate("MainWindow", "Відстань до екрану (см)"))
         self.label_6.setText(_translate("MainWindow", "Щільність пікселів (DPI)"))
         self.Start_btn.setText(_translate("MainWindow", "Почати аналіз"))
+        self.DPI_LineEdit.setDisabled(True)
+        self.DPI_LineEdit.setStyleSheet("""
+            QLineEdit {
+                background-color: #f0f0f0; /* Світліший фон */
+                color: #a0a0a0; /* Світліший текст */
+                border: 1px solid gray; /* Світла рамка */
+            }
+        """)
 
     def add_text_to_process_textedit(self, text):
         self.plainTextEdit.appendPlainText(text)
+
+    def on_clear_button_clicked(self):
+        self.plainTextEdit.clear()
+        self.URL_lineEdit.clear()
+        self.TotalTime_lineEdit.clear()
 
     def set_total_time_textedit(self, text):
         self.TotalTime_lineEdit.setText(text)
