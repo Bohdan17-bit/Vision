@@ -20,7 +20,6 @@ class FontsManager:
                 font_name = parts[0].strip()  # Назва шрифту
                 font_path = 'C:\\' + parts[1].strip()  # Шлях до шрифту з C:\
                 self.dict_names_path[font_name] = font_path
-                print(f"Назва шрифту: {font_name}, Шлях: {font_path}")
             else:
                 print(f"Не вдалося розпарсити рядок: {line}")
 
@@ -47,7 +46,6 @@ class FontsManager:
     def get_coefficient_font_letter(self, font_name, font_size, new_dpi):
 
         standard_times_14 = self.json_handler.find_combination_font("Times New Roman", 14, 100)
-        print(standard_times_14)
 
         standard_w = standard_times_14["size_width"]
         standard_h = standard_times_14["size_height"]

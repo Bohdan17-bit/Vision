@@ -54,98 +54,83 @@ class ParserPDF:
 
     def extract_text_elements_with_coordinates(self, page, image, zoom_f=3):
         text = page.get_text("rawdict")
-        word = ""
-        word_bbox = [None, None, None, None]
-
         previous_word_coords = None
 
         for block in text["blocks"]:
             if "lines" in block:
                 for line in block["lines"]:
                     for span in line["spans"]:
+
+                        word = ""
+                        word_bbox = [None, None, None, None]
+
                         font = span["font"]
                         size = span["size"]
                         color = span["color"]
                         color_hex = self.convert_color_to_hex(color)
                         flags = self.flags_decomposer(span["flags"])
 
+                        current_font = font
+                        current_size = size
+                        current_color = color_hex
+                        current_bgcolor = self.get_pixel_color(image, int(span["bbox"][2] * zoom_f) - 5,
+                                                               int(span["bbox"][3] * zoom_f) - 5)
+                        current_flags = flags
+
                         for char in span["chars"]:
+
                             character = char["c"]
                             bbox = char["bbox"]
+
+                            print(f"Next symbol : {character}")
 
                             pixel_x = int(bbox[2] * zoom_f) - 5
                             pixel_y = int(bbox[3] * zoom_f) - 5
                             bgcolor_hex = self.get_pixel_color(image, pixel_x, pixel_y)
 
-                            if character.isspace() or re.match(r'[^\w\s]', character):
+                            # Якщо символ є пробілом або не є буквою, цифрою, тире або крапкою, обробляємо як роздільник
+                            if character.isspace() or not (character.isalnum() or character in "-."):
                                 if word:
-                                    text_span = TextSpanPDF()
-                                    word = word.lower()
-                                    text_span.set_text(word)
-                                    text_span.set_coords(word_bbox[0], word_bbox[2], word_bbox[1], word_bbox[3])
-                                    text_span.set_font(current_font)
-                                    text_span.set_size_text(int(current_size))
-                                    text_span.set_color_text(current_color)
-                                    text_span.set_background_color(current_bgcolor)
-                                    text_span.set_flags(current_flags)
-
-                                    if previous_word_coords:
-                                        distance = self.calculate_distance(previous_word_coords, word_bbox)
-                                        # Store distance in the next span
-                                        self.list_spans[-1].set_distance_to_next_span(distance)
-                                    else:
-                                        text_span.set_distance_to_next_span(0)
-
-                                    self.list_spans.append(text_span)
+                                    self.append_text_span(word, word_bbox, current_font, current_size, current_color,
+                                                          current_bgcolor, current_flags, previous_word_coords)
                                     previous_word_coords = word_bbox
                                     word = ""
                                     word_bbox = [None, None, None, None]
+                                continue
 
-                                text_span = TextSpanPDF()
-                                character = character.lower()
-                                text_span.set_text(character)
-                                text_span.set_coords(bbox[0], bbox[2], bbox[1], bbox[3])
-                                text_span.set_font(font)
-                                text_span.set_size_text(int(size))
-                                text_span.set_color_text(color_hex)
-                                text_span.set_background_color(bgcolor_hex)
-                                text_span.set_flags(flags)
-                                text_span.set_distance_to_next_span(0)
-                                self.list_spans.append(text_span)
+                            if not word:  # Ініціалізація нового слова
+                                word_bbox[0] = bbox[0]
+                                word_bbox[1] = bbox[1]
+                            word += character
+                            word_bbox[2] = bbox[2]
+                            word_bbox[3] = bbox[3]
 
-                            else:
-                                if not word:
-                                    word_bbox[0] = bbox[0]
-                                    word_bbox[1] = bbox[1]
-                                    current_font = font
-                                    current_size = size
-                                    current_color = color_hex
-                                    current_bgcolor = bgcolor_hex
-                                    current_flags = flags
+                        # Додаємо останнє слово після завершення спану
+                        if word:
+                            self.append_text_span(word, word_bbox, current_font, current_size,
+                                                  current_color, current_bgcolor, current_flags,
+                                                  previous_word_coords)
+                            previous_word_coords = word_bbox
+                            word = ""
+                            word_bbox = [None, None, None, None]
 
-                                word += character
-                                word_bbox[2] = bbox[2]
-                                word_bbox[3] = bbox[3]
+    def append_text_span(self, text, bbox, font, size, color, bgcolor, flags, previous_coords):
+        text_span = TextSpanPDF()
+        text_span.set_text(text)
+        text_span.set_coords(bbox[0], bbox[2], bbox[1], bbox[3])
+        text_span.set_font(font)
+        text_span.set_size_text(int(size))
+        text_span.set_color_text(color)
+        text_span.set_background_color(bgcolor)
+        text_span.set_flags(flags)
 
-        if word:
-            text_span = TextSpanPDF()
-            word = word.lower()
-            text_span.set_text(word)
-            text_span.set_coords(word_bbox[0], word_bbox[2], word_bbox[1], word_bbox[3])
-            text_span.set_font(current_font)
-            text_span.set_size_text(current_size)
-            text_span.set_color_text(current_color)
-            text_span.set_background_color(current_bgcolor)
-            text_span.set_flags(current_flags)
+        if previous_coords:
+            distance = self.calculate_distance(previous_coords, bbox)
+            self.list_spans[-1].set_distance_to_next_span(distance)
+        else:
+            text_span.set_distance_to_next_span(0)
 
-            if previous_word_coords:
-                distance = self.calculate_distance(previous_word_coords, word_bbox)
-                # Store distance in the next span
-                self.list_spans[-1].set_distance_to_next_span(distance)
-            else:
-                text_span.set_distance_to_next_span(0)
-
-            self.list_spans.append(text_span)
+        self.list_spans.append(text_span)
 
     def start(self, filename):
         self.list_spans = []
@@ -159,3 +144,4 @@ class ParserPDF:
             self.extract_text_elements_with_coordinates(page, image, zoom_factor)
         doc.close()
         return self.list_spans
+

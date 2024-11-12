@@ -7,8 +7,8 @@ import numpy as np
 from ParserWeb import ParserWeb
 from pdf_parser import ParserPDF
 import re
-from spire.doc import *
-from spire.doc.common import *
+
+from docx2pdf import convert
 import os
 
 
@@ -69,30 +69,26 @@ class Model:
 
     def convert_word_to_pdf(self, file_docx):
         try:
-            if not (file_docx.lower().endswith(".docx") or file_docx.lower().endswith(".doc")):
+            if not file_docx.lower().endswith(".docx"):
                 raise ValueError("Файл не має розширення .docx")
 
-            try:
-                decoded_path = os.path.normpath(file_docx)
+            decoded_path = os.path.normpath(file_docx)
+            new_name = os.path.splitext(decoded_path)[0] + ".pdf"
 
-                document = Document()
-                print(f"Завантаження файлу: {decoded_path}")
-                document.LoadFromFile(decoded_path)
-                print("Файл завантажено")
+            # Перевіряємо, чи існує файл PDF, і видаляємо його
+            if os.path.exists(new_name):
+                print(f"Видалення існуючого файлу: {new_name}")
+                os.remove(new_name)
 
-                new_name = os.path.splitext(decoded_path)[0] + ".PDF"
+            print(f"Конвертація файлу: {decoded_path}")
 
-                document.SaveToFile(new_name, FileFormat.PDF)
-                document.Close()
+            # Використання docx2pdf для конвертації
+            convert(decoded_path, new_name)
 
-                self.set_path(new_name)
+            self.set_path(new_name)
 
-                print(f"Файл успішно конвертовано: {new_name}")
-                return new_name
-
-            except Exception as e:
-                print(f"Помилка під час обробки: {e}")
-                return e
+            print(f"Файл успішно конвертовано: {new_name}")
+            return new_name
 
         except Exception as e:
             print(f"Помилка під час конвертації: {e}")
@@ -132,7 +128,6 @@ class Model:
         return launch_distance
 
     def calculate_average_landing_position(self, word, d, k):
-        print(word, d, k)
         m = 3.3 + 0.49 * d * k
         # print(f"For word <{word}> m = {round(m, 3)}")
         return m
@@ -234,6 +229,8 @@ class Model:
     def calculate_final_pos_fixation(self, dict_probability):
         keys = list(dict_probability.keys())
         values = list(dict_probability.values())
+        if sum(values) < 0:
+            return 1
         chosen_key = random.choices(keys, weights=values, k=1)[0]
         return chosen_key
 

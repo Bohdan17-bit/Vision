@@ -119,6 +119,10 @@ class Worker(QThread):
 
         return True, formatted_name
 
+    def calculate_time_read_digit(self, word):
+        count = sum(1 for char in word if char.isdigit())
+        return count
+
     def start_analyze(self):
 
         rest_letters = 0
@@ -127,14 +131,9 @@ class Worker(QThread):
 
         for word in self.words_spans:
 
-            if '<' in word.text_span or '>' in word.text_span:
-                continue
-
-            if word.text_span.isalpha():
+            if re.match(r'^[\w\-\.]+$', word.text_span, re.UNICODE):
 
                 self.progress_signal.emit(f"Наступне слово : {word.text_span}")
-
-                time.sleep(0.05)
 
                 if rest_letters > 3:
                     rest_letters = 3
@@ -180,7 +179,7 @@ class Worker(QThread):
                     state = "2 symbols after word"
 
                 else:
-                    self.progress_signal.emit(f"Фіксація в слові <{word.text_span}> на слові {word.text_span[index_chose]}!")
+                    self.progress_signal.emit(f"Фіксація в слові <{word.text_span}> на символі {word.text_span[index_chose]}!")
                     rest_letters = len(word.text_span) - index_chose
                     prob_refix = self.model.calculate_probability_refixation(word.text_span, index_chose)
                     self.progress_signal.emit(f"Вірогідність рефіксації = {round(prob_refix, 3)}")

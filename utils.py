@@ -18,7 +18,6 @@ class FrequencyDictionary(QThread):
         self.workbook = self.get_frequency_dictionary('data/wordFrequency.xlsx')
         self.sheet = self.get_sheet_workbook(self.workbook, "4 forms (219k)")
         self.column = self.get_column_by_sheet('B')
-
         self.finished.emit()
 
     def get_frequency_dictionary(self, path):
