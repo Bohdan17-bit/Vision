@@ -119,10 +119,6 @@ class Worker(QThread):
 
         return True, formatted_name
 
-    def calculate_time_read_digit(self, word):
-        count = sum(1 for char in word if char.isdigit())
-        return count
-
     def start_analyze(self):
 
         rest_letters = 0

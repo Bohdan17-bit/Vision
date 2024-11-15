@@ -208,6 +208,9 @@ class Model:
 
     def calculate_lex_ident_general(self, word, biggest_freq, frequency_word):
         base5 = 150
+        number_digits = self.calculate_time_read_digit(word)
+        if number_digits > 0:
+            base5 *= number_digits
         if isinstance(frequency_word, str):
             return 0
         print(frequency_word)
@@ -216,12 +219,27 @@ class Model:
         m_ = base5 + 15 * (word_length - 5) + 40 * (1 - frequency_word)
         return m_
 
+    def calculate_time_read_digit(self, word):
+        num = 0
+        for char in word:
+            if char.isdigit():
+                num += 1
+        return num
+
     def calculate_lex_ident_letter(self, word, loc, most_freq_word, frequency_word):
         range = 100
+        number_digits = self.calculate_time_read_digit(word)
         m_ = self.calculate_lex_ident_general(word, most_freq_word, frequency_word)
+
+        # Додаємо 100 мс за кожну цифру
+        additional_time = number_digits * 100
+        m_ += additional_time
+
         word_length = len(word)
         middle = word_length / 2
         m = m_ + range / (word_length / 2) * abs(loc - middle)
+
+        # Гарантуємо мінімальний час 80 мс
         if m < 80:
             m = 80
         return m

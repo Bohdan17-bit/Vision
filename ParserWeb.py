@@ -21,7 +21,6 @@ class ParserWeb:
         driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
         driver.get(url)
 
-        # Оновлений JavaScript для обгортання тільки видимих текстових вузлів
         driver.execute_script(r"""
             function wrapTextNodesInSpan(element) {
                 const ignoredTags = ['SCRIPT', 'STYLE', 'NOSCRIPT', 'IMG', 'IFRAME'];
@@ -55,11 +54,11 @@ class ParserWeb:
         """)
 
         elements = driver.find_elements(By.CLASS_NAME, "word")
+        previous_coords = None
 
         for elem in elements:
             try:
                 text = elem.text.strip()
-                # Фільтрація: видаляємо елементи, що містять URL або специфічні символи
                 if text and re.match(r'^[a-zA-Zа-яА-ЯіїєґІЇЄҐ0-9]+$', text):  # Додаємо підтримку чисел (0-9)
                     text = self.clean_html_tags(text)
                     text = text.rstrip(".,!?;:\"(){}[]<>")
@@ -78,9 +77,16 @@ class ParserWeb:
                     word_span.set_color_text(color)
                     word_span.set_coords(x1, y1, x2, y2)
                     word_span.set_flags("")
-                    self.list_spans.append(word_span)
 
-                    print(f"Text: {text}")
+                    # Розрахунок відстані до наступного елемента
+                    if previous_coords:
+                        distance = self.get_distance_to_next_element(previous_coords, (x1, y1))
+                        word_span.distance_to_next_span = distance
+
+                    self.list_spans.append(word_span)
+                    previous_coords = (x2, y2)
+
+                    print(f"Text: {text}, Distance to next: {getattr(word_span, 'distance_to_next_span', 'N/A')}")
 
             except (StaleElementReferenceException, JavascriptException) as e:
                 print(f"Exception caught: {e}, skipping this element")
@@ -144,3 +150,8 @@ class ParserWeb:
             return driver.execute_script(script, element)
         except JavascriptException:
             return [0, 0, 0, 0]
+
+    def get_distance_to_next_element(self, prev_coords, curr_coords):
+        prev_x, prev_y = prev_coords
+        curr_x, curr_y = curr_coords
+        return ((curr_x - prev_x) ** 2 + (curr_y - prev_y) ** 2) ** 0.5
