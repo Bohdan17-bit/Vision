@@ -3,7 +3,10 @@ import re
 from TextSpan import TextSpanPDF
 from PIL import Image
 import io
+import logging
 
+# Налаштування логування
+logging.basicConfig(filename='pdf_parser.log', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 class ParserPDF:
 
@@ -11,7 +14,6 @@ class ParserPDF:
         self.list_spans = []
 
     def flags_decomposer(self, flags):
-        """Make font flags human readable."""
         l = []
         if flags & 2 ** 0:
             l.append("superscript")
@@ -35,7 +37,6 @@ class ParserPDF:
         return cm
 
     def calculate_distance(self, coords1, coords2):
-        """Calculate distance between two points."""
         _, _, x1, y1 = coords1
         x2, y2, _, _ = coords2
         distance = ((x2 - x1) ** 2 + (y2 - y1) ** 2) ** 0.5
@@ -82,13 +83,10 @@ class ParserPDF:
                             character = char["c"]
                             bbox = char["bbox"]
 
-                            print(f"Next symbol : {character}")
-
                             pixel_x = int(bbox[2] * zoom_f) - 5
                             pixel_y = int(bbox[3] * zoom_f) - 5
                             bgcolor_hex = self.get_pixel_color(image, pixel_x, pixel_y)
 
-                            # Якщо символ є пробілом або не є буквою, цифрою, тире або крапкою, обробляємо як роздільник
                             if character.isspace() or not (character.isalnum() or character in "-."):
                                 if word:
                                     self.append_text_span(word, word_bbox, current_font, current_size, current_color,
@@ -98,14 +96,13 @@ class ParserPDF:
                                     word_bbox = [None, None, None, None]
                                 continue
 
-                            if not word:  # Ініціалізація нового слова
+                            if not word:
                                 word_bbox[0] = bbox[0]
                                 word_bbox[1] = bbox[1]
                             word += character
                             word_bbox[2] = bbox[2]
                             word_bbox[3] = bbox[3]
 
-                        # Додаємо останнє слово після завершення спану
                         if word:
                             self.append_text_span(word, word_bbox, current_font, current_size,
                                                   current_color, current_bgcolor, current_flags,
@@ -134,14 +131,22 @@ class ParserPDF:
 
     def start(self, filename):
         self.list_spans = []
-        doc = fitz.open(filename)
+        try:
+            doc = fitz.open(filename)
+        except Exception as e:
+            logging.error(f"Не вдалося відкрити PDF файл: {e}")
+            return []
+
         zoom_factor = 3
         for page_num in range(doc.page_count):
             page = doc.load_page(page_num)
             mat = fitz.Matrix(zoom_factor, zoom_factor)
             pix = page.get_pixmap(matrix=mat)
             image = Image.open(io.BytesIO(pix.tobytes("png")))
-            self.extract_text_elements_with_coordinates(page, image, zoom_factor)
+            try:
+                self.extract_text_elements_with_coordinates(page, image, zoom_factor)
+            except Exception as e:
+                logging.error(f"Помилка при обробці сторінки {page_num + 1}: {e}")
+
         doc.close()
         return self.list_spans
-

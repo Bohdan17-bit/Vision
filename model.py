@@ -70,28 +70,26 @@ class Model:
     def convert_word_to_pdf(self, file_docx):
         try:
             if not file_docx.lower().endswith(".docx"):
-                raise ValueError("Файл не має розширення .docx")
+                raise ValueError("File is not .docx")
 
             decoded_path = os.path.normpath(file_docx)
             new_name = os.path.splitext(decoded_path)[0] + ".pdf"
 
-            # Перевіряємо, чи існує файл PDF, і видаляємо його
             if os.path.exists(new_name):
-                print(f"Видалення існуючого файлу: {new_name}")
+                print(f"Existing file is deleting...: {new_name}")
                 os.remove(new_name)
 
-            print(f"Конвертація файлу: {decoded_path}")
+            print(f"Converting the file: {decoded_path}")
 
-            # Використання docx2pdf для конвертації
             convert(decoded_path, new_name)
 
             self.set_path(new_name)
 
-            print(f"Файл успішно конвертовано: {new_name}")
+            print(f"The file was successfully converted: {new_name}")
             return new_name
 
         except Exception as e:
-            print(f"Помилка під час конвертації: {e}")
+            print(f"Error was occurred! The file was not converted! Error: {e}")
             return e
 
     def split_string(self, text):
@@ -124,12 +122,10 @@ class Model:
         word_length = len(next_word)
         center_in_next_word = -word_length / 2
         launch_distance = center_in_next_word - prev_length
-        # print(f"For word <{next_word}> d = {launch_distance}")
         return launch_distance
 
     def calculate_average_landing_position(self, word, d, k):
         m = 3.3 + 0.49 * d * k
-        # print(f"For word <{word}> m = {round(m, 3)}")
         return m
 
     def calculate_standard_deviation(self, d, word):
@@ -142,7 +138,6 @@ class Model:
         zn = 2 * (sd * sd)
         prob = 1 / q * math.exp(-ch / zn)
         return prob
-
 
     def calculate_probability_landing(self, target_word, rest_letters, k):
         d = self.calculate_launch_distance(target_word, rest_letters)
@@ -176,7 +171,7 @@ class Model:
         a = self.calculate_min_point_a(word)
         x = self.calculate_deviation_x(word, position)
         y = a + (0.03 * (x ** 2))
-        return y
+        return max(0, min(1, y))
 
     def calculate_deviation_x(self, word, position):
         opt_position = len(word) / 2 - 0.5
@@ -203,43 +198,27 @@ class Model:
         return m
 
     def calculate_time_reading(self, word, loc, most_freq_word, frequency_word):
-        time_needed = self.calculate_lex_ident_letter(word, loc, most_freq_word, frequency_word)
-        return time_needed
+        if word.isdigit() and int(word) > 9999:
+            min_time = len(word) * 400
+            return min_time
+        else:
+            return self.calculate_lex_ident_letter(word, loc, most_freq_word, frequency_word)
 
     def calculate_lex_ident_general(self, word, biggest_freq, frequency_word):
         base5 = 150
-        number_digits = self.calculate_time_read_digit(word)
-        if number_digits > 0:
-            base5 *= number_digits
-        if isinstance(frequency_word, str):
-            return 0
-        print(frequency_word)
         frequency_word /= biggest_freq
         word_length = len(word)
         m_ = base5 + 15 * (word_length - 5) + 40 * (1 - frequency_word)
         return m_
 
-    def calculate_time_read_digit(self, word):
-        num = 0
-        for char in word:
-            if char.isdigit():
-                num += 1
-        return num
-
     def calculate_lex_ident_letter(self, word, loc, most_freq_word, frequency_word):
         range = 100
-        number_digits = self.calculate_time_read_digit(word)
         m_ = self.calculate_lex_ident_general(word, most_freq_word, frequency_word)
-
-        # Додаємо 100 мс за кожну цифру
-        additional_time = number_digits * 100
-        m_ += additional_time
 
         word_length = len(word)
         middle = word_length / 2
         m = m_ + range / (word_length / 2) * abs(loc - middle)
 
-        # Гарантуємо мінімальний час 80 мс
         if m < 80:
             m = 80
         return m
@@ -248,7 +227,7 @@ class Model:
         keys = list(dict_probability.keys())
         values = list(dict_probability.values())
         if sum(values) < 0:
-            return 1
+            return 0
         chosen_key = random.choices(keys, weights=values, k=1)[0]
         return chosen_key
 

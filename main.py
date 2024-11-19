@@ -8,7 +8,7 @@ from PyQt5.QtWidgets import QFileDialog
 from worker import Worker
 
 
-class Ui_MainWindow(QtWidgets.QMainWindow):  # Змінюємо нащадок класу
+class Ui_MainWindow(QtWidgets.QMainWindow):
     url_changed = pyqtSignal(str)
     data_sended = pyqtSignal(dict)
 
@@ -264,7 +264,7 @@ class Ui_MainWindow(QtWidgets.QMainWindow):  # Змінюємо нащадок �
         self.statusbar.setObjectName("statusbar")
         MainWindow.setStatusBar(self.statusbar)
 
-        self.clear_button = QtWidgets.QPushButton("Очистити", self.centralwidget)
+        self.clear_button = QtWidgets.QPushButton("Clear", self.centralwidget)
         self.clear_button.setMinimumSize(QtCore.QSize(0, 70))
         self.clear_button.setFont(QtGui.QFont("Segoe UI", 12))
         self.clear_button.setStyleSheet("QPushButton { background-color: #4a90e2; color: black; }")
@@ -283,18 +283,19 @@ class Ui_MainWindow(QtWidgets.QMainWindow):  # Змінюємо нащадок �
 
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
-        MainWindow.setWindowTitle(_translate("MainWindow", "Головне вікно"))
-        self.label.setText(_translate("MainWindow", "Оберіть необхідний файл або вставте URL адресу вебсторінки"))
-        self.ChooseFile_btn.setText(_translate("MainWindow", "Обрати файл"))
-        self.label_7.setText(_translate("MainWindow", "Проміжні результати"))
-        self.label_8.setText(_translate("MainWindow", "Загальний час читання"))
-        self.label_2.setText(_translate("MainWindow", "Користувацькі налаштування"))
-        self.label_3.setText(_translate("MainWindow", "Діагональ монітору (дюйм)"))
-        self.label_4.setText(_translate("MainWindow", "Ширина дисплею (px)"))
-        self.label_9.setText(_translate("MainWindow", "Висота дисплею (px)"))
-        self.label_5.setText(_translate("MainWindow", "Відстань до екрану (см)"))
-        self.label_6.setText(_translate("MainWindow", "Щільність пікселів (DPI)"))
-        self.Start_btn.setText(_translate("MainWindow", "Почати аналіз"))
+        MainWindow.setWindowTitle(_translate("MainWindow", "Program"))
+        self.label.setText(_translate("MainWindow", "Enter the file path or paste the URL link:"))
+        self.ChooseFile_btn.setText(_translate("MainWindow", "Choose File"))
+        self.label_7.setText(_translate("MainWindow", "Intermediate Outcomes"))
+        self.label_8.setText(_translate("MainWindow", "Total Reading Time"))
+        self.label_2.setText(_translate("MainWindow", "User Settings"))
+        self.label_3.setText(_translate("MainWindow", "Monitor Diagonal (inches)"))
+        self.label_4.setText(_translate("MainWindow", "Display Width (px)"))
+        self.label_9.setText(_translate("MainWindow", "Display Height (px)"))
+        self.label_5.setText(_translate("MainWindow", "Distance to Screen (cm)"))
+        self.label_6.setText(_translate("MainWindow", "Pixel Density (DPI)"))
+        self.Start_btn.setText(_translate("MainWindow", "Start Analysis"))
+
         self.DPI_LineEdit.setDisabled(True)
         self.DPI_LineEdit.setStyleSheet("""
             QLineEdit {
@@ -309,7 +310,6 @@ class Ui_MainWindow(QtWidgets.QMainWindow):  # Змінюємо нащадок �
 
     def on_clear_button_clicked(self):
         self.plainTextEdit.clear()
-        self.URL_lineEdit.clear()
         self.TotalTime_lineEdit.clear()
 
     def set_total_time_textedit(self, text):

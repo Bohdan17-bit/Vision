@@ -8,13 +8,13 @@ class JSONHandler:
         self.data = []
         self.path = "fonts.json"
         self.create_file_if_does_not_exist()
-        self.read_fonts()  # Додано: зчитує дані при ініціалізації
+        self.read_fonts()
 
     def read_fonts(self):
         try:
             with open(self.path, 'r') as file:
                 self.data = json.load(file)
-        except (FileNotFoundError, json.JSONDecodeError):  # Додано: обробка порожнього файлу
+        except (FileNotFoundError, json.JSONDecodeError):
             self.data = []
 
     def find_combination_font(self, font_name, font_size, dpi):
@@ -32,12 +32,12 @@ class JSONHandler:
             "dpi": dpi
         }
 
-        self.data.append(data_to_save)  # Додано: оновлення в пам'яті
+        self.data.append(data_to_save)
 
-        with open(self.path, 'w') as file:  # Перезаписує файл з новими даними
+        with open(self.path, 'w') as file:
             json.dump(self.data, file, indent=4)
 
     def create_file_if_does_not_exist(self):
         if not os.path.exists(self.path):
             with open(self.path, "w") as file:
-                json.dump([], file)  # Створює порожній файл з порожнім списком
+                json.dump([], file)

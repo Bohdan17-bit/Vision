@@ -47,182 +47,220 @@ class Worker(QThread):
 
         self.reset_results()
 
-        print("Починаємо обробку даних...")
+        print("Starting data processing...")
 
         path = self.model.path
 
         if path == "":
-            self.data_signal.emit("Попередження", "Відсутній шлях до файлу чи веб-сторінки!")
+            self.data_signal.emit("Warning", "Path to file or webpage is missing!")
             return
 
         if url_is_correct(path) is False:
-            self.data_signal.emit("Попередження", "Сайт або файл не знайдено!")
+            self.data_signal.emit("Warning", "Website or file not found!")
             return
 
         if (self.model.height_px <= 0 and self.model.width_px <= 0 and self.model.distance_to_display <= 0
                 and self.model.PPI <= 0 and self.model.diagonal_inches <= 0):
-            self.data_signal.emit("Помилка", "Будь ласка, заповніть усі поля!")
+            self.data_signal.emit("Error", "Please fill in all fields!")
             return
 
         self.model.calculate_ppi()
 
         self.updated_ppi_rounded.emit(str(round(self.model.PPI, 0)))
 
-        self.progress_signal.emit("Завантаження частотного словника...")
+        self.progress_signal.emit("Loading frequency dictionary...")
+
+        time.sleep(3)
 
         if not self.freq_dict.sheet:
-            self.progress_signal.emit("Частотний словник не знайдено!")
+            self.progress_signal.emit("Frequency dictionary not found!")
             return
 
         if "html" in path or "htm" in path and "http" not in path and "https" not in path:
             if url_is_correct(path) is not False:
                 self.model.set_path(path)
-                self.progress_signal.emit("Аналіз структури сайту...")
+                self.progress_signal.emit("Analyzing website structure...")
                 self.model.read_text_from_site(path)
 
         elif "http" in path or "https" in path:
             self.model.set_path(path)
-            self.progress_signal.emit("Аналіз структури сайту...")
+            self.progress_signal.emit("Analyzing website structure...")
             self.model.read_text_from_site(path)
 
         else:
             if "docx" in path or "doc" in path:
-                self.progress_signal.emit("Конвертація документу в PDF...")
+                self.progress_signal.emit("Converting document to PDF...")
                 self.model.convert_word_to_pdf(path)
             else:
                 self.model.set_path(path)
             self.model.read_text_from_pdf()
 
-        self.progress_signal.emit("Починається обробка...")
+        self.progress_signal.emit("Processing started...\n")
 
         self.words_spans = self.model.get_text_list_spans()
 
         self.start_analyze()
 
-    import re
-
     def format_font_name(self, font_name):
         if font_name is None:
             return False, "Times New Roman"
 
-        # Форматуємо назву шрифту, додаючи пробіли перед великими літерами
         formatted_name = re.sub(r'(?<!^)(?=[A-Z])', ' ', font_name)
 
-        # Видаляємо окремі літери (якщо вони стоять самостійно)
         formatted_name = re.sub(r'\b[A-Z]\b', '', formatted_name)
 
-        # Відсікаємо все після тире
         formatted_name = re.split(r'\s*-\s*', formatted_name)[0]
 
-        # Прибираємо зайві пробіли
         formatted_name = ' '.join(formatted_name.split())
 
         return True, formatted_name
 
-    def start_analyze(self):
+    def word_contain_digit(self, word):
+        for char in word.text_span:
+            if char.isdigit():
+                return True
+        return False
 
+    def clean_word(self, word):
+        return re.sub(r'[.,!?;:]+$', '', word)
+
+    def start_analyze(self):
         rest_letters = 0
         state = "updated"
         biggest_value_freq = self.freq_dict.get_biggest_frequency()
 
         for word in self.words_spans:
+            # Пропускаємо розділові знаки
+            if re.match(r'^[.,!?;:]+$', word.text_span):
+                continue
 
-            if re.match(r'^[\w\-\.]+$', word.text_span, re.UNICODE):
+            # Видаляємо розділові знаки з кінця слова
+            cleaned_word = self.clean_word(word.text_span)
+            self.progress_signal.emit(f"Next word : {cleaned_word}")
 
-                self.progress_signal.emit(f"Наступне слово : {word.text_span}")
+            if rest_letters > 3:
+                rest_letters = 3
 
-                if rest_letters > 3:
-                    rest_letters = 3
+            index_chose = 0
+            word.size = int(word.size)
+            found, word.font_span = self.format_font_name(word.font_span)
 
+            if not found:
+                self.progress_signal.emit(f"Font not found! Times New Roman, 14 will be used")
+            else:
+                self.progress_signal.emit(f"Font properties : {word.font_span}, {int(word.size)}")
+
+            coefficient = self.fontsManager.get_coefficient_font_letter(word.font_span, word.size, self.model.PPI)
+            dict_probability = self.model.calculate_probability_landing(cleaned_word, rest_letters, coefficient)
+
+            self.progress_signal.emit(f"Calculating index of the word : <{cleaned_word}>")
+
+            if state == "updated":
+                index_chose = self.model.calculate_final_pos_fixation(dict_probability)
+
+                # Забороняємо перескакувати довгі слова або числа
+                if len(cleaned_word) >= 4 or cleaned_word.isdigit():
+                    if index_chose >= len(cleaned_word):
+                        self.progress_signal.emit(f"Forced fixation on the last character of <{cleaned_word}>.")
+                        index_chose = len(cleaned_word) - 1
+                else:
+                    if index_chose >= len(cleaned_word):
+                        self.progress_signal.emit("Word was skipped! Landing on the next character!")
+                        rest_letters = 0
+                        continue
+
+                    if index_chose > len(cleaned_word):
+                        self.progress_signal.emit("Word was skipped! Landing 2 symbols after the word!")
+                        rest_letters = 0
+                        state = "2 symbols after word"
+                        continue
+
+            self.progress_signal.emit(
+                f"Fixation in word <{cleaned_word}> on character '{cleaned_word[index_chose]}' at index {index_chose + 1}.")
+
+            if state == "2 symbols after word":
                 index_chose = 0
+                state = "updated"
 
-                word.size = int(word.size)
-                found, word.font_span = self.format_font_name(word.font_span)
+            if word.distance_to_next_span > 0:
+                index_chose = len(word.text_span) - 1
 
-                if not found:
-                    self.progress_signal.emit(f"Шрифт не виявлено! Буде використано Times New Roman, 14")
-                else:
-                    self.progress_signal.emit(f"Властивості шрифту : {word.font_span}, {int(word.size)}")
+            if word.is_last_in_line:
+                index_chose = len(word.text_span) - 1
 
-                coefficient = self.fontsManager.get_coefficient_font_letter(word.font_span, word.size, self.model.PPI)
-                dict_probability = self.model.calculate_probability_landing(word.text_span, rest_letters, coefficient)
+            if index_chose == len(word.text_span):
+                self.progress_signal.emit("Word was skipped! Landing on the next character!")
+                rest_letters = 0
 
-                self.progress_signal.emit(f"Розрахунок індекса слова : <{word.text_span}>")
-
-                if state == "updated":
-                    index_chose = self.model.calculate_final_pos_fixation(dict_probability)
-                    self.progress_signal.emit(f"Індекс <{index_chose}> було обрано!")
-
-                if state == "2 symbols after word":
-                    index_chose = 0
-                    state = "updated"
-
-                if word.distance_to_next_span > 0:
-                    index_chose = len(word.text_span) - 1
-                    self.progress_signal.emit("Кінець цього слова...")
-
-                if word.is_last_in_line:
-                    index_chose = len(word.text_span) - 1
-                    self.progress_signal.emit("Кінець рядку...")
-
-                if index_chose == len(word.text_span):
-                    self.progress_signal.emit("Слово було пропущене! Приземлення на наступний символ!")
-                    rest_letters = 0
-
-                elif index_chose > len(word.text_span):
-                    self.progress_signal.emit("Слово пропущене! Приземлення на 2 символа після слова!")
-                    rest_letters = 0
-                    state = "2 symbols after word"
-
-                else:
-                    self.progress_signal.emit(f"Фіксація в слові <{word.text_span}> на символі {word.text_span[index_chose]}!")
-                    rest_letters = len(word.text_span) - index_chose
-                    prob_refix = self.model.calculate_probability_refixation(word.text_span, index_chose)
-                    self.progress_signal.emit(f"Вірогідність рефіксації = {round(prob_refix, 3)}")
-
-                    if self.model.should_refixate(prob_refix):
-                        self.progress_signal.emit("------------------Необхідна рефіксація------------------")
-
-                        time_refix = self.model.make_refixation(word.text_span, index_chose + 1)
-                        self.progress_signal.emit(f"Час затримки рефіксації = {round(time_refix, 3)}")
-
-                        time_refix_sd = self.model.calculate_sd(time_refix)
-
-                        self.model.increase_general_time(time_refix)
-                        self.model.increase_general_time_sd(time_refix_sd)
-
-                    else:
-                        self.progress_signal.emit("Рефіксація не потрібна...")
-
-                    freq = self.freq_dict.find_freq_for_word(self.freq_dict.sheet, self.freq_dict.column, word.text_span)
-                    self.progress_signal.emit("Обчислення часу лексичної ідентифікації...")
-
-                    time_word_reading = self.model.calculate_time_reading(word.text_span, index_chose + 1,
-                                                                     biggest_value_freq,
-                                                                     freq)
-                    self.progress_signal.emit(f"Для слова <{word.text_span}> необхідний час читання = {round(time_word_reading, 3)}")
-
-                    time_to_read_sd = self.model.calculate_sd(time_word_reading)
-                    dispersion = self.model.calculate_normal_distribution(time_word_reading, time_to_read_sd)
-
-                    self.model.increase_general_time(dispersion)
-
-                    self.progress_signal.emit("Виконання сакади...")
-
-                self.model.add_average_latency_time()
-                self.model.add_standard_deviation_latency_time()
+            elif index_chose > len(word.text_span):
+                self.progress_signal.emit("Word was skipped! Landing 2 symbols after the word!")
+                rest_letters = 0
+                state = "2 symbols after word"
 
             else:
-                rest_letters += len(word.text_span)
+                rest_letters = len(word.text_span) - index_chose
+                prob_refix = self.model.calculate_probability_refixation(word.text_span, index_chose)
+                self.progress_signal.emit(f"Probability of refixation = {round(prob_refix, 3)}")
+
+                if self.model.should_refixate(prob_refix):
+                    self.progress_signal.emit("------------------Refixation required------------------")
+                    time_refix = self.model.make_refixation(word.text_span, index_chose + 1)
+                    self.progress_signal.emit(f"Refixation delay time = {round(time_refix, 3)}")
+                    time_refix_sd = self.model.calculate_sd(time_refix)
+                    self.model.increase_general_time(time_refix)
+                    self.model.increase_general_time_sd(time_refix_sd)
+                else:
+                    self.progress_signal.emit("Refixation not required...")
+
+                time_estimated_per_str = 0
+                time_to_read_sd = 0
+
+                if self.word_contain_digit(word):
+                    parsed_word = self.freq_dict.mixed_word_to_words(word.text_span)
+                    for segment in parsed_word.split():
+                        segment_lower = segment.lower()
+                        freq = self.freq_dict.find_freq_for_word(self.freq_dict.sheet, self.freq_dict.column,
+                                                                 segment_lower)
+                        self.progress_signal.emit(f"Frequency of word: <{segment}> per million: {int(freq)}")
+                        time_per_segment = self.model.calculate_time_reading(segment_lower, len(segment) / 2,
+                                                                             biggest_value_freq, freq)
+                        time_to_read_sd += self.model.calculate_sd(time_per_segment)
+                        time_estimated_per_str += time_per_segment
+
+                    self.progress_signal.emit(f"Pronounced: {parsed_word}")
+                    self.progress_signal.emit(
+                        f"Time required for reading word <{word.text_span}> = {int(time_estimated_per_str)}")
+
+                else:
+                    word_original = word.text_span
+                    word_lower = word.text_span.lower()
+                    freq = self.freq_dict.find_freq_for_word(self.freq_dict.sheet, self.freq_dict.column, word_lower)
+                    self.progress_signal.emit(f"Frequency of word <{word_original}> per million: {int(freq)}")
+                    time_for_word = int(
+                        self.model.calculate_time_reading(word_lower, index_chose, biggest_value_freq, freq))
+                    time_estimated_per_str += time_for_word
+                    self.progress_signal.emit(
+                        f"Time required for reading word <{word_original}> = {int(time_estimated_per_str)}")
+                    time_to_read_sd += self.model.calculate_sd(time_for_word)
+
+                time_to_read_sd = self.model.calculate_sd(time_estimated_per_str)
+                dispersion = self.model.calculate_normal_distribution(time_estimated_per_str, time_to_read_sd)
+                self.model.increase_general_time(dispersion)
+                self.model.increase_general_time_sd(time_to_read_sd)
+
+                self.progress_signal.emit("Performing saccade...")
+
+            self.model.add_average_latency_time()
+            self.model.add_standard_deviation_latency_time()
 
             if word.distance_to_next_span > 0:
                 time_saccade = self.model.calculate_time_saccade(word.distance_to_next_span)
-                self.progress_signal.emit(f"\nПерехід на наступний блок... Необхідно часу {int(time_saccade)} ms\n")
+                self.progress_signal.emit(f"\nMoving to the next block... Time required {int(time_saccade)} ms\n")
                 self.model.increase_general_time(time_saccade)
 
         final_result = self.get_time_to_read(self.model.get_sum_time_reading(), self.model.get_sum_standard_deviation())
         self.final_result.emit(final_result)
-        self.progress_signal.emit("Аналіз завершено.")
+        self.progress_signal.emit("Analysis completed.")
         self.reset_results()
 
     def get_time_to_read(self, time, sd_time):
@@ -241,14 +279,14 @@ class Worker(QThread):
         sec_sd = int(sec_sd)
 
         if min > 0:
-            final_result = f"Необхідно: {min},{int(sec_sd) % 100} хв. для читання."
+            final_result = f"Required: {min},{int(sec_sd) % 100} min for reading."
         else:
-            final_result = f"Необхідно: {sec},{int(ms) % 100} с. для читання."
+            final_result = f"Required: {sec},{int(ms) % 100} s for reading."
 
         if min_sd > 0:
-            path = f"\nСтандартне відхилення складає: {min_sd},{sec_sd} хв."
+            path = f"\nStandard deviation is: {min_sd},{sec_sd} min."
         else:
-            path = f"\nСтандартне відхилення складає: {sec_sd},{int(ms_sd) % 100} с."
+            path = f"\nStandard deviation is: {sec_sd},{int(ms_sd) % 100} s."
 
         final_result += path
 
