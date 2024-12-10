@@ -214,6 +214,7 @@ class Model:
     def calculate_lex_ident_letter(self, word, loc, most_freq_word, frequency_word):
         range = 100
         m_ = self.calculate_lex_ident_general(word, most_freq_word, frequency_word)
+        print(f"Time for word: {word}, with index: {loc}, general: {m_}")
 
         word_length = len(word)
         middle = word_length / 2
@@ -221,13 +222,15 @@ class Model:
 
         if m < 80:
             m = 80
+
+        print(f"Time for letter: {m}")
         return m
 
     def calculate_final_pos_fixation(self, dict_probability):
         keys = list(dict_probability.keys())
         values = list(dict_probability.values())
         if sum(values) < 0:
-            return 0
+            return 0.9
         chosen_key = random.choices(keys, weights=values, k=1)[0]
         return chosen_key
 

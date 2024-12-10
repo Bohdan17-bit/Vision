@@ -70,6 +70,13 @@ class FrequencyDictionary(QThread):
             return result
 
     def number_to_words(self, n):
+        if n == 0:
+            return "zero"
+
+        str_n = str(n)
+        if all(char == "0" for char in str_n):
+            return " ".join("zero" for _ in str_n)
+
         if n < 0:
             return "negative"
 
@@ -88,8 +95,8 @@ class FrequencyDictionary(QThread):
 
         else:
             words = []
-            for digit in str(n):  # Розбиваємо число на окремі цифри
-                words.append(self.ones[int(digit)])  # Перетворюємо цифру у слово
+            for digit in str_n:
+                words.append(self.ones[int(digit)])
             return " ".join(words)
 
     def split_mixed_word(self, text):
@@ -97,14 +104,27 @@ class FrequencyDictionary(QThread):
         return segments
 
     def mixed_word_to_words(self, text):
-
         segments = self.split_mixed_word(text)
         result = []
 
         for segment in segments:
             if segment.isdigit():
-                result.append(self.number_to_words(int(segment)))
+                if all(char == "0" for char in segment):
+                    result.append(" ".join("zero" for _ in segment))
+                else:
+                    result.append(self.number_to_words(int(segment)))
+            elif any(char.isdigit() for char in segment):
+                result.append(self.convert_digit_to_pronunciation(segment))
             else:
                 result.append(segment)
 
         return " ".join(result)
+
+    def convert_digit_to_pronunciation(self, segment):
+        pronunciation = ""
+        for char in segment:
+            if char.isdigit():
+                pronunciation += f"{self.ones[int(char)]} "
+            else:
+                pronunciation += char
+        return pronunciation.strip()

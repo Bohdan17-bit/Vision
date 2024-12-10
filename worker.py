@@ -130,16 +130,14 @@ class Worker(QThread):
         biggest_value_freq = self.freq_dict.get_biggest_frequency()
 
         for word in self.words_spans:
-            # Пропускаємо розділові знаки
-            if re.match(r'^[.,!?;:]+$', word.text_span):
+            if re.match(r'^[.,!?;:-]+$', word.text_span):
                 continue
 
-            # Видаляємо розділові знаки з кінця слова
             cleaned_word = self.clean_word(word.text_span)
             self.progress_signal.emit(f"Next word : {cleaned_word}")
 
-            if rest_letters > 3:
-                rest_letters = 3
+            if rest_letters > 5:
+                rest_letters = 5
 
             index_chose = 0
             word.size = int(word.size)
@@ -158,25 +156,25 @@ class Worker(QThread):
             if state == "updated":
                 index_chose = self.model.calculate_final_pos_fixation(dict_probability)
 
-                # Забороняємо перескакувати довгі слова або числа
                 if len(cleaned_word) >= 4 or cleaned_word.isdigit():
                     if index_chose >= len(cleaned_word):
-                        self.progress_signal.emit(f"Forced fixation on the last character of <{cleaned_word}>.")
                         index_chose = len(cleaned_word) - 1
                 else:
-                    if index_chose >= len(cleaned_word):
-                        self.progress_signal.emit("Word was skipped! Landing on the next character!")
+                    if index_chose == len(cleaned_word):
+                        self.progress_signal.emit("Word was skipped! Landing on the next character!\n")
                         rest_letters = 0
                         continue
 
                     if index_chose > len(cleaned_word):
-                        self.progress_signal.emit("Word was skipped! Landing 2 symbols after the word!")
+                        self.progress_signal.emit("Word was skipped! Landing 2 symbols after the word!\n")
                         rest_letters = 0
                         state = "2 symbols after word"
                         continue
 
             self.progress_signal.emit(
                 f"Fixation in word <{cleaned_word}> on character '{cleaned_word[index_chose]}' at index {index_chose + 1}.")
+
+            index_saved = index_chose
 
             if state == "2 symbols after word":
                 index_chose = 0
@@ -189,22 +187,22 @@ class Worker(QThread):
                 index_chose = len(word.text_span) - 1
 
             if index_chose == len(word.text_span):
-                self.progress_signal.emit("Word was skipped! Landing on the next character!")
+                self.progress_signal.emit("Word was skipped! Landing on the next character!\n")
                 rest_letters = 0
 
             elif index_chose > len(word.text_span):
-                self.progress_signal.emit("Word was skipped! Landing 2 symbols after the word!")
+                self.progress_signal.emit("Word was skipped! Landing 2 symbols after the word!\n")
                 rest_letters = 0
                 state = "2 symbols after word"
 
             else:
                 rest_letters = len(word.text_span) - index_chose
-                prob_refix = self.model.calculate_probability_refixation(word.text_span, index_chose)
+                prob_refix = self.model.calculate_probability_refixation(word.text_span, index_saved)
                 self.progress_signal.emit(f"Probability of refixation = {round(prob_refix, 3)}")
 
                 if self.model.should_refixate(prob_refix):
                     self.progress_signal.emit("------------------Refixation required------------------")
-                    time_refix = self.model.make_refixation(word.text_span, index_chose + 1)
+                    time_refix = self.model.make_refixation(word.text_span, index_saved + 1)
                     self.progress_signal.emit(f"Refixation delay time = {round(time_refix, 3)}")
                     time_refix_sd = self.model.calculate_sd(time_refix)
                     self.model.increase_general_time(time_refix)
@@ -237,7 +235,7 @@ class Worker(QThread):
                     freq = self.freq_dict.find_freq_for_word(self.freq_dict.sheet, self.freq_dict.column, word_lower)
                     self.progress_signal.emit(f"Frequency of word <{word_original}> per million: {int(freq)}")
                     time_for_word = int(
-                        self.model.calculate_time_reading(word_lower, index_chose, biggest_value_freq, freq))
+                        self.model.calculate_time_reading(word_lower, index_saved, biggest_value_freq, freq))
                     time_estimated_per_str += time_for_word
                     self.progress_signal.emit(
                         f"Time required for reading word <{word_original}> = {int(time_estimated_per_str)}")
@@ -263,33 +261,26 @@ class Worker(QThread):
         self.progress_signal.emit("Analysis completed.")
         self.reset_results()
 
-    def get_time_to_read(self, time, sd_time):
-        min = time // 60000
-        sec = (time % 60000) // 1000
-        ms = time % 1000
+    def get_time_to_read(self, time: float, sd_time: float) -> str:
+        min = int(time // 60000)
+        sec = int((time % 60000) // 1000)
+        ms = int((time % 1000) / 10)
 
-        min = int(min)
-        sec = int(sec)
-
-        min_sd = sd_time // 60000
-        sec_sd = (sd_time % 60000) // 1000
-        ms_sd = sd_time % 1000
-
-        min_sd = int(min_sd)
-        sec_sd = int(sec_sd)
+        min_sd = int(sd_time // 60000)
+        sec_sd = int((sd_time % 60000) // 1000)
+        ms_sd = int((sd_time % 1000) / 10)
 
         if min > 0:
-            final_result = f"Required: {min},{int(sec_sd) % 100} min for reading."
+            final_result = f"Required: {min}:{sec:02d} min for reading."
         else:
-            final_result = f"Required: {sec},{int(ms) % 100} s for reading."
+            final_result = f"Required: {sec}.{ms:02d} s for reading."
 
         if min_sd > 0:
-            path = f"\nStandard deviation is: {min_sd},{sec_sd} min."
+            path = f"\nStandard deviation is: {min_sd}:{sec_sd:02d} min."
         else:
-            path = f"\nStandard deviation is: {sec_sd},{int(ms_sd) % 100} s."
+            path = f"\nStandard deviation is: {sec_sd}.{ms_sd:02d} s."
 
         final_result += path
-
         return final_result
 
 
