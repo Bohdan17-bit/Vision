@@ -25,6 +25,81 @@ class FrequencyDictionary(QThread):
         ]
         self.thousands = ["", "thousand"]
 
+        self.abbreviations = {
+            "etc.": "et cetera",
+            "etc": "et cetera",
+            "e.g.": "for example",
+            "e.g": "for example",
+            "i.e.": "that is",
+            "i.e": "that is",
+            "vs.": "versus",
+            "vs": "versus",
+            "a.m.": "ante meridiem",
+            "p.m.": "post meridiem",
+            "approx.": "approximately",
+            "Dr.": "Doctor",
+            "Mr.": "Mister",
+            "Mrs.": "Mistress",
+            "Ph.D.": "Doctor of Philosophy",
+            "B.Sc.": "Bachelor of Science",
+            "M.Sc.": "Master of Science",
+            "Inc.": "Incorporated",
+            "Ltd.": "Limited",
+            "St.": "Saint",
+            "Jr.": "Junior",
+            "Sr.": "Senior",
+        }
+
+        self.contraction_map = {
+            "wasn't": "was not", "wasnt": "was not", "was`nt": "was not",
+            "weren't": "were not", "werent": "were not", "weren`t": "were not",
+            "i'm": "I am", "i`m": "I am",
+            "you've": "you have", "youve": "you have",
+            "we've": "we have", "weve": "we have",
+            "they've": "they have", "theyve": "they have",
+            "he's": "he is", "hes": "he is", "he`s": "he is",
+            "she's": "she is", "shes": "she is", "she`s": "she is",
+            "it's": "it is", "its": "it is", "it`s": "it is",
+            "i'd": "I would", "i`d": "I would",
+            "you'd": "you would", "you`d": "you would",
+            "we'd": "we would", "we`d": "we would",
+            "they'd": "they would", "they`d": "they would",
+            "he'd": "he would", "he`d": "he would",
+            "she'd": "she would", "she`d": "she would",
+            "it'd": "it would", "it`d": "it would",
+            "i'll": "I will", "i`ll": "I will",
+            "you'll": "you will", "you`ll": "you will",
+            "we'll": "we will", "we`ll": "we will",
+            "they'll": "they will", "they`ll": "they will",
+            "he'll": "he will", "he`ll": "he will",
+            "she'll": "she will", "she`ll": "she will",
+            "it'll": "it will", "it`ll": "it will",
+            "don't": "do not", "dont": "do not", "don`t": "do not",
+            "doesn't": "does not", "doesnt": "does not", "doesn`t": "does not",
+            "didn't": "did not", "didnt": "did not", "didn`t": "did not",
+            "can't": "cannot", "cant": "cannot", "can`t": "cannot",
+            "won't": "will not", "wont": "will not", "won`t": "will not",
+            "wouldn't": "would not", "wouldnt": "would not", "wouldn`t": "would not",
+            "shouldn't": "should not", "shouldnt": "should not", "shouldn`t": "should not",
+            "couldn't": "could not", "couldnt": "could not", "couldn`t": "could not",
+            "mightn't": "might not", "mightnt": "might not", "mightn`t": "might not",
+            "mustn't": "must not", "mustnt": "must not", "mustn`t": "must not",
+            "who's": "who is", "who`'s": "who is",  # Для питання "who is"
+            "here's": "here is", "there's": "there is",  # Для "here is" і "there is"
+            "that's": "that is", "this's": "this is",  # "that is", "this is"
+            "isn't": "is not", "isnt": "is not", "isn`t": "is not",  # "is not"
+            "aren't": "are not", "arent": "are not", "aren`t": "are not",  # "are not"
+            "hadn't": "had not", "hadnt": "had not", "hadn`t": "had not",  # "had not"
+            "let's": "let us",  # "let us"
+            "what's": "what is",  # "what is"
+            "how's": "how is",  # "how is",
+            "etc": "et cetera", "etc.": "et cetera",
+            "I’m": "I am",
+            "I'm": "I am",
+            "I`m": "I am",
+            "i’m": "I am"
+        }
+
     def run(self):
         self.load_dictionary()
 
@@ -46,7 +121,7 @@ class FrequencyDictionary(QThread):
 
     def find_freq_for_word(self, sheet, column, word):
         for cell in column:
-            if word == cell.value:
+            if word == cell.value and cell.row != 1:
                 return sheet.cell(row=cell.row, column=15).value
         return 0
 
@@ -70,53 +145,71 @@ class FrequencyDictionary(QThread):
             return result
 
     def number_to_words(self, n):
-        if n == 0:
+        if n == 0 or n == '0':
             return "zero"
 
         str_n = str(n)
-        if all(char == "0" for char in str_n):
-            return " ".join("zero" for _ in str_n)
+        words = []
 
-        if n < 0:
-            return "negative"
+        for char in str_n:
+            if char == '0':
+                words.append('zero')
+            else:
+                break
 
-        if n <= 9999:
-            words = []
-            if n >= 1000:
-                words.append(self.ones[n // 1000] + " " + self.thousands[1])
-                n %= 1000
-            if n >= 100:
-                words.append(self.ones[n // 100] + " hundred")
-                n %= 100
-            if n > 0:
-                words.append(self.parse_hundreds(n))
-
-            return " ".join(words).strip()
-
+        remaining_number = int(str_n.lstrip('0'))
+        if remaining_number <= 9999:
+            if remaining_number >= 1000:
+                words.append(self.ones[remaining_number // 1000] + " " + self.thousands[1])
+                remaining_number %= 1000
+            if remaining_number >= 100:
+                words.append(self.ones[remaining_number // 100] + " hundred")
+                remaining_number %= 100
+            if remaining_number > 0:
+                words.append(self.parse_hundreds(remaining_number))
         else:
-            words = []
-            for digit in str_n:
+            for digit in str(remaining_number):
                 words.append(self.ones[int(digit)])
-            return " ".join(words)
+        print(" ".join(words).strip())
+
+        return " ".join(words).strip()
 
     def split_mixed_word(self, text):
-        segments = re.findall(r'[a-zA-Z]+|\d+|[^\w\s]', text)
+        segments = re.findall(r"[a-zA-Z]+(?:['`’][a-zA-Z]+)?|\d+", text)
         return segments
 
     def mixed_word_to_words(self, text):
         segments = self.split_mixed_word(text)
         result = []
 
+        print("segments:", segments)
+
         for segment in segments:
-            if segment.isdigit():
-                if all(char == "0" for char in segment):
-                    result.append(" ".join("zero" for _ in segment))
-                else:
-                    result.append(self.number_to_words(int(segment)))
-            elif any(char.isdigit() for char in segment):
-                result.append(self.convert_digit_to_pronunciation(segment))
+            lower_segment = segment.lower()
+
+            # Перевірка, чи є слово в словнику абревіатур
+            if lower_segment in self.abbreviations:
+                original_segment = segment
+                pronounced_segment = self.abbreviations[lower_segment]
+                result.append(f"{original_segment} (pronounced as {pronounced_segment})")
+            elif lower_segment in self.contraction_map:
+                result.append(self.contraction_map[lower_segment])
             else:
-                result.append(segment)
+                # Якщо апостроф або зворотні лапки присутні, але слово не є скороченням, розбиваємо на частини
+                if "`" in segment or "’" in segment or "'" in segment:
+                    parts = re.split(r"['`’]", segment)
+                    for part in parts:
+                        if part:
+                            result.append(part)
+                elif segment.isdigit():
+                    if all(char == '0' for char in segment):
+                        result.append(" ".join("zero" for _ in segment))
+                    else:
+                        result.append(self.number_to_words(int(segment)))
+                elif any(char.isdigit() for char in segment):
+                    result.append(self.convert_digit_to_pronunciation(segment))
+                else:
+                    result.append(segment)
 
         return " ".join(result)
 

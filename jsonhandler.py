@@ -38,6 +38,5 @@ class JSONHandler:
             json.dump(self.data, file, indent=4)
 
     def create_file_if_does_not_exist(self):
-        if not os.path.exists(self.path):
-            with open(self.path, "w") as file:
-                json.dump([], file)
+        with open(self.path, "w") as file:
+            json.dump([], file)

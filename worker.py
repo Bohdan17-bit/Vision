@@ -213,7 +213,8 @@ class Worker(QThread):
                 time_estimated_per_str = 0
                 time_to_read_sd = 0
 
-                if self.word_contain_digit(word):
+                if self.word_contain_digit(word) or any(char in word.text_span for char in "-'`"):
+                    print("Send : ", word.text_span)
                     parsed_word = self.freq_dict.mixed_word_to_words(word.text_span)
                     for segment in parsed_word.split():
                         segment_lower = segment.lower()
@@ -228,7 +229,6 @@ class Worker(QThread):
                     self.progress_signal.emit(f"Pronounced: {parsed_word}")
                     self.progress_signal.emit(
                         f"Time required for reading word <{word.text_span}> = {int(time_estimated_per_str)}")
-
                 else:
                     word_original = word.text_span
                     word_lower = word.text_span.lower()
