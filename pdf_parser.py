@@ -14,6 +14,7 @@ class ParserPDF:
         self.abbreviations = {
             "etc.": "et cetera",
             "etc": "et cetera",
+            "Etc": "et cetera",
             "e.g.": "for example",
             "e.g": "for example",
             "i.e.": "that is",
@@ -99,7 +100,6 @@ class ParserPDF:
 
                             if character.isspace() or not (character.isalnum() or character in "-'`’"):
                                 if word:
-                                    # Перевірка на абревіатури
                                     word = self.replace_abbreviations(word)
                                     self.append_text_span(word, word_bbox, current_font, current_size, current_color,
                                                           current_bgcolor, current_flags, previous_word_coords)
@@ -125,10 +125,9 @@ class ParserPDF:
                             word_bbox = [None, None, None, None]
 
     def replace_abbreviations(self, word):
-        # Перевірка на абревіатуру, ігноруючи крапку в кінці
         word_lower = word.lower().strip('.')
         if word_lower in self.abbreviations:
-            return self.abbreviations[word_lower]  # Повертає правильну інтерпретацію
+            return word
         return word
 
     def append_text_span(self, text, bbox, font, size, color, bgcolor, flags, previous_coords):

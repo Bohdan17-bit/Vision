@@ -122,7 +122,8 @@ class Worker(QThread):
         return False
 
     def clean_word(self, word):
-        return re.sub(r'[.,!?;:]+$', '', word)
+        word.replace("’", "'").replace("’", "'")
+        return re.sub(r'[,!?;:]+$', '', word)
 
     def start_analyze(self):
         rest_letters = 0
@@ -130,7 +131,7 @@ class Worker(QThread):
         biggest_value_freq = self.freq_dict.get_biggest_frequency()
 
         for word in self.words_spans:
-            if re.match(r'^[.,!?;:-]+$', word.text_span):
+            if re.match(r'^[.,!?;:]+$', word.text_span):
                 continue
 
             cleaned_word = self.clean_word(word.text_span)
@@ -213,18 +214,35 @@ class Worker(QThread):
                 time_estimated_per_str = 0
                 time_to_read_sd = 0
 
-                if self.word_contain_digit(word) or any(char in word.text_span for char in "-'`"):
-                    print("Send : ", word.text_span)
-                    parsed_word = self.freq_dict.mixed_word_to_words(word.text_span)
-                    for segment in parsed_word.split():
-                        segment_lower = segment.lower()
-                        freq = self.freq_dict.find_freq_for_word(self.freq_dict.sheet, self.freq_dict.column,
-                                                                 segment_lower)
-                        self.progress_signal.emit(f"Frequency of word: <{segment}> per million: {int(freq)}")
-                        time_per_segment = self.model.calculate_time_reading(segment_lower, len(segment) / 2,
-                                                                             biggest_value_freq, freq)
+                print("next span", word.text_span)
+
+                if self.word_contain_digit(word) or any(char in word.text_span for char in
+                                                        "-'`.") or word.text_span.lower() in self.freq_dict.abbreviations or word.text_span.lower() in self.freq_dict.contraction_map:
+                    # Special handling for "etc"
+                    if word.text_span.lower() == "etc":
+                        parsed_word = "et cetera"
+                        freq = self.freq_dict.find_freq_for_word(self.freq_dict.sheet, self.freq_dict.column, "etc")
+                        self.progress_signal.emit(f"Frequency of word: <etc> per million: {int(freq)}")
+                        time_per_segment = self.model.calculate_time_reading("etc", len("etc") / 2, biggest_value_freq,
+                                                                             freq)
                         time_to_read_sd += self.model.calculate_sd(time_per_segment)
                         time_estimated_per_str += time_per_segment
+                    else:
+                        # Check if it's a number and convert to words
+                        if word.text_span.isdigit():
+                            parsed_word = self.freq_dict.number_to_words(word.text_span)
+                        else:
+                            parsed_word = self.freq_dict.mixed_word_to_words(word.text_span)
+
+                        for segment in parsed_word.split():
+                            segment_lower = segment.lower()
+                            freq = self.freq_dict.find_freq_for_word(self.freq_dict.sheet, self.freq_dict.column,
+                                                                     segment_lower)
+                            self.progress_signal.emit(f"Frequency of word: <{segment}> per million: {int(freq)}")
+                            time_per_segment = self.model.calculate_time_reading(segment_lower, len(segment) / 2,
+                                                                                 biggest_value_freq, freq)
+                            time_to_read_sd += self.model.calculate_sd(time_per_segment)
+                            time_estimated_per_str += time_per_segment
 
                     self.progress_signal.emit(f"Pronounced: {parsed_word}")
                     self.progress_signal.emit(

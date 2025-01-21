@@ -94,6 +94,7 @@ class FrequencyDictionary(QThread):
             "what's": "what is",  # "what is"
             "how's": "how is",  # "how is",
             "etc": "et cetera", "etc.": "et cetera",
+            "Etc": "et cetera",
             "I’m": "I am",
             "I'm": "I am",
             "I`m": "I am",
@@ -170,7 +171,6 @@ class FrequencyDictionary(QThread):
         else:
             for digit in str(remaining_number):
                 words.append(self.ones[int(digit)])
-        print(" ".join(words).strip())
 
         return " ".join(words).strip()
 
@@ -182,34 +182,35 @@ class FrequencyDictionary(QThread):
         segments = self.split_mixed_word(text)
         result = []
 
-        print("segments:", segments)
-
         for segment in segments:
             lower_segment = segment.lower()
 
-            # Перевірка, чи є слово в словнику абревіатур
+            # Обробка абревіатур
             if lower_segment in self.abbreviations:
                 original_segment = segment
                 pronounced_segment = self.abbreviations[lower_segment]
                 result.append(f"{original_segment} (pronounced as {pronounced_segment})")
+
             elif lower_segment in self.contraction_map:
                 result.append(self.contraction_map[lower_segment])
-            else:
-                # Якщо апостроф або зворотні лапки присутні, але слово не є скороченням, розбиваємо на частини
-                if "`" in segment or "’" in segment or "'" in segment:
-                    parts = re.split(r"['`’]", segment)
-                    for part in parts:
-                        if part:
-                            result.append(part)
-                elif segment.isdigit():
-                    if all(char == '0' for char in segment):
-                        result.append(" ".join("zero" for _ in segment))
-                    else:
-                        result.append(self.number_to_words(int(segment)))
-                elif any(char.isdigit() for char in segment):
-                    result.append(self.convert_digit_to_pronunciation(segment))
+
+            elif "`" in segment or "’" in segment or "'" in segment:
+                parts = re.split(r"['`’]", segment)
+                for part in parts:
+                    if part:
+                        result.append(part)
+
+            elif segment.isdigit():
+                if all(char == '0' for char in segment):
+                    result.append(" ".join("zero" for _ in segment))
                 else:
-                    result.append(segment)
+                    result.append(self.number_to_words(int(segment)))
+
+            elif any(char.isdigit() for char in segment):
+                result.append(self.convert_digit_to_pronunciation(segment))
+
+            else:
+                result.append(segment)
 
         return " ".join(result)
 
@@ -221,3 +222,13 @@ class FrequencyDictionary(QThread):
             else:
                 pronunciation += char
         return pronunciation.strip()
+
+    def number_to_words_with_leading_zeros(self, n):
+        str_n = str(n).lstrip('0')
+        words = []
+
+        if len(str(n)) != len(str_n):
+            for _ in range(len(str(n)) - len(str_n)):
+                words.append('zero')
+
+        return self.number_to_words(str_n)
