@@ -131,6 +131,7 @@ class Worker(QThread):
         biggest_value_freq = self.freq_dict.get_biggest_frequency()
 
         for word in self.words_spans:
+            print("----",word.text_span)
             if re.match(r'^[.,!?;:]+$', word.text_span):
                 continue
 

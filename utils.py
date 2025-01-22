@@ -152,13 +152,12 @@ class FrequencyDictionary(QThread):
         str_n = str(n)
         words = []
 
-        for char in str_n:
-            if char == '0':
-                words.append('zero')
-            else:
-                break
+        # Зберігаємо лідируючі нулі
+        leading_zeros = len(str_n) - len(str_n.lstrip('0'))
+        words.extend(['zero'] * leading_zeros)
 
-        remaining_number = int(str_n.lstrip('0'))
+        # Обробка решти числа
+        remaining_number = int(str_n.lstrip('0')) if str_n.lstrip('0') else 0
         if remaining_number <= 9999:
             if remaining_number >= 1000:
                 words.append(self.ones[remaining_number // 1000] + " " + self.thousands[1])
@@ -185,30 +184,35 @@ class FrequencyDictionary(QThread):
         for segment in segments:
             lower_segment = segment.lower()
 
-            # Обробка абревіатур
             if lower_segment in self.abbreviations:
-                original_segment = segment
                 pronounced_segment = self.abbreviations[lower_segment]
-                result.append(f"{original_segment} (pronounced as {pronounced_segment})")
+                result.append(pronounced_segment)
 
+            # Обробка скорочень
             elif lower_segment in self.contraction_map:
                 result.append(self.contraction_map[lower_segment])
 
+            # Обробка апострофів та лапок
             elif "`" in segment or "’" in segment or "'" in segment:
                 parts = re.split(r"['`’]", segment)
                 for part in parts:
                     if part:
                         result.append(part)
 
+            # Обробка чисел
             elif segment.isdigit():
                 if all(char == '0' for char in segment):
                     result.append(" ".join("zero" for _ in segment))
                 else:
-                    result.append(self.number_to_words(int(segment)))
+                    # Використовуємо метод, який враховує лідируючі нулі
+                    result.append(self.number_to_words_with_leading_zeros(segment))
 
+            # Обробка змішаних слів
             elif any(char.isdigit() for char in segment):
                 result.append(self.convert_digit_to_pronunciation(segment))
 
+
+            # Інші випадки
             else:
                 result.append(segment)
 
@@ -224,11 +228,11 @@ class FrequencyDictionary(QThread):
         return pronunciation.strip()
 
     def number_to_words_with_leading_zeros(self, n):
-        str_n = str(n).lstrip('0')
-        words = []
+        str_n = str(n)
+        leading_zeros = len(str_n) - len(str_n.lstrip('0'))
+        words = ['zero'] * leading_zeros
 
-        if len(str(n)) != len(str_n):
-            for _ in range(len(str(n)) - len(str_n)):
-                words.append('zero')
+        if str_n.lstrip('0'):
+            words.append(self.number_to_words(int(str_n.lstrip('0'))))
 
-        return self.number_to_words(str_n)
+        return " ".join(words)

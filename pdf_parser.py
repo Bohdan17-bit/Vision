@@ -11,19 +11,9 @@ class ParserPDF:
 
     def __init__(self):
         self.list_spans = []
-        self.abbreviations = {
-            "etc.": "et cetera",
-            "etc": "et cetera",
-            "Etc": "et cetera",
-            "e.g.": "for example",
-            "e.g": "for example",
-            "i.e.": "that is",
-            "i.e": "that is",
-            "vs.": "versus",
-            "vs": "versus",
-            "a.m.": "ante meridiem",
-            "p.m.": "post meridiem"
-        }
+        self.abbreviations_keys = [
+            "etc.", "etc", "Etc", "e.g.", "e.g", "i.e.", "i.e", "vs.", "vs", "a.m.", "p.m."
+        ]
 
     def flags_decomposer(self, flags):
         l = []
@@ -98,9 +88,10 @@ class ParserPDF:
                             pixel_y = int(bbox[3] * zoom_f) - 5
                             bgcolor_hex = self.get_pixel_color(image, pixel_x, pixel_y)
 
-                            if character.isspace() or not (character.isalnum() or character in "-'`’"):
+                            if character.isspace() or not (character.isalnum() or character in "-.'`’"):
                                 if word:
                                     word = self.replace_abbreviations(word)
+                                    print("---->prev--->", word)
                                     self.append_text_span(word, word_bbox, current_font, current_size, current_color,
                                                           current_bgcolor, current_flags, previous_word_coords)
                                     previous_word_coords = word_bbox
@@ -126,7 +117,8 @@ class ParserPDF:
 
     def replace_abbreviations(self, word):
         word_lower = word.lower().strip('.')
-        if word_lower in self.abbreviations:
+        if word_lower in self.abbreviations_keys:
+            # Повертаємо слово як є, якщо воно є в абревіатурах
             return word
         return word
 
