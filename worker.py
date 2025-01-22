@@ -228,12 +228,12 @@ class Worker(QThread):
                                                                              freq)
                         time_to_read_sd += self.model.calculate_sd(time_per_segment)
                         time_estimated_per_str += time_per_segment
-                    elif word.text_span.lower() in self.freq_dict.abbreviations:
+
+                    elif (word.text_span.lower()).replace(".", "") in self.freq_dict.abbreviations:
 
                         word_cleaned = word.text_span.lower().replace(".", "")
                         parsed_word = self.freq_dict.abbreviations[word_cleaned]
 
-                        # Розбиваємо отриману фразу на слова
                         for segment in parsed_word.split():
                             segment_lower = segment.lower()
                             freq = self.freq_dict.find_freq_for_word(self.freq_dict.sheet, self.freq_dict.column,
