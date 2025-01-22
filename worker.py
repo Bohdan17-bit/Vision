@@ -220,7 +220,7 @@ class Worker(QThread):
                 if self.word_contain_digit(word) or any(char in word.text_span for char in
                                                         "-'`.") or word.text_span.lower() in self.freq_dict.abbreviations or word.text_span.lower() in self.freq_dict.contraction_map:
                     # Special handling for "etc"
-                    if word.text_span.lower() == "etc":
+                    if "etc" in word.text_span.lower():
                         parsed_word = "et cetera"
                         freq = self.freq_dict.find_freq_for_word(self.freq_dict.sheet, self.freq_dict.column, "etc")
                         self.progress_signal.emit(f"Frequency of word: <etc> per million: {int(freq)}")
@@ -228,6 +228,22 @@ class Worker(QThread):
                                                                              freq)
                         time_to_read_sd += self.model.calculate_sd(time_per_segment)
                         time_estimated_per_str += time_per_segment
+                    elif word.text_span.lower() in self.freq_dict.abbreviations:
+
+                        word_cleaned = word.text_span.lower().replace(".", "")
+                        parsed_word = self.freq_dict.abbreviations[word_cleaned]
+
+                        # Розбиваємо отриману фразу на слова
+                        for segment in parsed_word.split():
+                            segment_lower = segment.lower()
+                            freq = self.freq_dict.find_freq_for_word(self.freq_dict.sheet, self.freq_dict.column,
+                                                                     segment_lower)
+
+                            self.progress_signal.emit(f"Frequency of word: <{segment}> per million: {int(freq)}")
+                            time_per_segment = self.model.calculate_time_reading(segment_lower, len(segment) / 2,
+                                                                                 biggest_value_freq, freq)
+                            time_to_read_sd += self.model.calculate_sd(time_per_segment)
+                            time_estimated_per_str += time_per_segment
                     else:
                         # Check if it's a number and convert to words
                         if word.text_span.isdigit():
@@ -247,19 +263,23 @@ class Worker(QThread):
 
                     self.progress_signal.emit(f"Pronounced: {parsed_word}")
                     self.progress_signal.emit(
-                        f"Time required for reading word <{word.text_span}> = {int(time_estimated_per_str)}")
+                        f"Time required for reading word <{word.text_span}> = {int(time_estimated_per_str)}"
+                    )
                 else:
                     word_original = word.text_span
                     word_lower = word.text_span.lower()
                     freq = self.freq_dict.find_freq_for_word(self.freq_dict.sheet, self.freq_dict.column, word_lower)
                     self.progress_signal.emit(f"Frequency of word <{word_original}> per million: {int(freq)}")
                     time_for_word = int(
-                        self.model.calculate_time_reading(word_lower, index_saved, biggest_value_freq, freq))
+                        self.model.calculate_time_reading(word_lower, index_saved, biggest_value_freq, freq)
+                    )
                     time_estimated_per_str += time_for_word
                     self.progress_signal.emit(
-                        f"Time required for reading word <{word_original}> = {int(time_estimated_per_str)}")
+                        f"Time required for reading word <{word_original}> = {int(time_estimated_per_str)}"
+                    )
                     time_to_read_sd += self.model.calculate_sd(time_for_word)
 
+                # Розрахунок стандартного відхилення та нормального розподілу
                 time_to_read_sd = self.model.calculate_sd(time_estimated_per_str)
                 dispersion = self.model.calculate_normal_distribution(time_estimated_per_str, time_to_read_sd)
                 self.model.increase_general_time(dispersion)
