@@ -116,8 +116,24 @@ class ParserPDF:
                             pixel_y = int(bbox[3] * zoom_f) - 5
                             bgcolor_hex = self.get_pixel_color(image, pixel_x, pixel_y)
 
+                            # Якщо слово починається з точки, пропускаємо її тільки якщо це не дата чи число
+                            if word == "" and character == ".":
+                                if not re.match(r"^\d{1,2}\.\d{1,2}\.\d{4}$", word):  # перевірка на дату
+                                    continue
+
+                            # Якщо символ - це пробіл або розділовий знак
                             if character.isspace() or not (character.isalnum() or character in "-.'`’"):
                                 if word:
+                                    # Перевіряємо кількість розділових знаків у слові
+                                    punctuation_count = len(re.findall(r"[-.'`’]", word))
+
+                                    # Якщо більше двох розділових знаків - пропускаємо це слово
+                                    if punctuation_count > 2:
+                                        word = ""
+                                        word_bbox = [None, None, None, None]
+                                        continue
+
+                                    # Заміна абревіатур
                                     word = self.replace_abbreviations(word)
                                     self.append_text_span(word, word_bbox, current_font, current_size, current_color,
                                                           current_bgcolor, current_flags, previous_word_coords)
@@ -134,14 +150,25 @@ class ParserPDF:
                             word_bbox[3] = bbox[3]
 
                         if word:
-                            word = self.replace_abbreviations(word)
-                            self.append_text_span(word, word_bbox, current_font, current_size, current_color,
-                                                  current_bgcolor, current_flags, previous_word_coords)
-                            previous_word_coords = word_bbox
+                            punctuation_count = len(re.findall(r"[-.'`’]", word))
+
+                            if punctuation_count <= 2:
+                                word = self.replace_abbreviations(word)
+                                self.append_text_span(word, word_bbox, current_font, current_size, current_color,
+                                                      current_bgcolor, current_flags, previous_word_coords)
+                                previous_word_coords = word_bbox
                             word = ""
                             word_bbox = [None, None, None, None]
 
     def replace_abbreviations(self, word):
+        # Видалення точок перед цифрами або у числових значеннях (якщо це не дата)
+        word = word.lstrip(".")
+
+        # Перевірка, чи це не дата або число
+        if re.match(r"^\d{1,2}\.\d{1,2}\.\d{4}$", word):  # дата формату dd.mm.yyyy
+            return word
+
+        # Перевірка на інші випадки
         if word in self.abbreviations:
             return word
 

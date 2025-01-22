@@ -122,7 +122,11 @@ class Worker(QThread):
         return False
 
     def clean_word(self, word):
-        word.replace("’", "'").replace("’", "'")
+        word = word.replace("’", "'").replace("’", "'")
+
+        if not any(char.isdigit() for char in word):
+            word = re.sub(r'\.$', '', word)
+
         return re.sub(r'[,!?;:]+$', '', word)
 
     def start_analyze(self):
@@ -219,6 +223,7 @@ class Worker(QThread):
 
                 if self.word_contain_digit(word) or any(char in word.text_span for char in
                                                         "-'`.") or word.text_span.lower() in self.freq_dict.abbreviations or word.text_span.lower() in self.freq_dict.contraction_map:
+
                     # Special handling for "etc"
                     if "etc" in word.text_span.lower():
                         parsed_word = "et cetera"
