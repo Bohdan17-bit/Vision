@@ -331,6 +331,13 @@ class Worker(QThread):
 def url_is_correct(path):
     if os.path.exists(path):
         return "file"
-    if requests.head(path).status_code == 200:
-        return "site"
-    return False
+
+    try:
+        response = requests.head(path)
+        if response.status_code == 200:
+            return "site"
+        else:
+            return False
+    except requests.exceptions.RequestException as e:
+        print(f"Error while checking the URL: {e}")
+        return False
