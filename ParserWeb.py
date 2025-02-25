@@ -14,6 +14,7 @@ logging.basicConfig(
     format='%(asctime)s - %(levelname)s - %(message)s'  # Формат записів
 )
 
+
 class ParserWeb:
     def __init__(self):
         self.list_spans = []
@@ -77,11 +78,9 @@ class ParserWeb:
             try:
                 text = elem.text.strip()
 
-                # Пропускаємо порожній текст або текст, що складається лише з розділових знаків
                 if not text or all(char in {'.', ',', '-', ' ', '<', '>'} for char in text):
                     continue
 
-                # Розділяємо текст на слова, включаючи символ ©
                 split_text = re.split(r'[.,\-\s<>]+', text)
                 split_text = [part for part in split_text if part]  # Видаляємо порожні частини
 

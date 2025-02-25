@@ -18,6 +18,7 @@ class FontsManager:
         self.alphabet = "abcdefghijklmnopqrstuvwxyz"
         logging.info("Initializing FontsManager...")
         self.read_fonts_from_file()
+        self.calculate_default_font_and_size()
 
     def parse_fonts(self, font_data):
         for line in font_data:

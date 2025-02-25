@@ -26,7 +26,6 @@ class FrequencyDictionary(QThread):
         self.thousands = ["", "thousand"]
 
         self.abbreviations = {
-            "etc": "et cetera",
             "eg": "for example",
             "ie": "that is",
             "vs": "versus",
@@ -44,9 +43,6 @@ class FrequencyDictionary(QThread):
             "st": "Saint",
             "jr": "Junior",
             "sr": "Senior",
-        }
-
-        self.contraction_map = {
             "wasn't": "was not", "wasnt": "was not", "was`nt": "was not",
             "weren't": "were not", "werent": "were not", "weren`t": "were not",
             "i'm": "I am", "i`m": "I am",
@@ -91,10 +87,6 @@ class FrequencyDictionary(QThread):
             "how's": "how is",  # "how is",
             "etc": "et cetera", "etc.": "et cetera",
             "Etc": "et cetera",
-            "I’m": "I am",
-            "I'm": "I am",
-            "I`m": "I am",
-            "i’m": "I am"
         }
 
     def run(self):
@@ -184,11 +176,6 @@ class FrequencyDictionary(QThread):
                 pronounced_segment = self.abbreviations[lower_segment]
                 result.append(pronounced_segment)
 
-            # Обробка скорочень
-            elif lower_segment in self.contraction_map:
-                result.append(self.contraction_map[lower_segment])
-
-            # Обробка апострофів та лапок
             elif "`" in segment or "’" in segment or "'" in segment:
                 parts = re.split(r"['`’]", segment)
                 for part in parts:

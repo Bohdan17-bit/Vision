@@ -122,7 +122,9 @@ class Worker(QThread):
         return False
 
     def clean_word(self, word):
-        word = word.replace("’", "'").replace("’", "'")
+        word = word.replace("’’", "'")
+        word = word.replace("`", "'")
+        word = word.replace("’", "'")
 
         if not any(char.isdigit() for char in word):
             word = re.sub(r'\.$', '', word)
@@ -135,12 +137,15 @@ class Worker(QThread):
         biggest_value_freq = self.freq_dict.get_biggest_frequency()
 
         for word in self.words_spans:
-            print("----",word.text_span)
+
             if re.match(r'^[.,!?;:]+$', word.text_span):
                 continue
 
             cleaned_word = self.clean_word(word.text_span)
             self.progress_signal.emit(f"Next word : {cleaned_word}")
+
+            cleaned_word = cleaned_word.lower()
+            memory_word = cleaned_word
 
             if rest_letters > 5:
                 rest_letters = 5
@@ -219,10 +224,10 @@ class Worker(QThread):
                 time_estimated_per_str = 0
                 time_to_read_sd = 0
 
-                print("next span", word.text_span)
-
                 if self.word_contain_digit(word) or any(char in word.text_span for char in
-                                                        "-'`.") or word.text_span.lower() in self.freq_dict.abbreviations or word.text_span.lower() in self.freq_dict.contraction_map:
+                                                        "-'’`.") or word.text_span.lower() in self.freq_dict.abbreviations:
+
+                    word_cleaned = word.text_span.lower().replace("’", "'").replace("`", "'").replace(".", "")
 
                     # Special handling for "etc"
                     if "etc" in word.text_span.lower():
@@ -234,9 +239,8 @@ class Worker(QThread):
                         time_to_read_sd += self.model.calculate_sd(time_per_segment)
                         time_estimated_per_str += time_per_segment
 
-                    elif (word.text_span.lower()).replace(".", "") in self.freq_dict.abbreviations:
+                    elif word_cleaned in self.freq_dict.abbreviations:
 
-                        word_cleaned = word.text_span.lower().replace(".", "")
                         parsed_word = self.freq_dict.abbreviations[word_cleaned]
 
                         for segment in parsed_word.split():
@@ -290,7 +294,7 @@ class Worker(QThread):
                 self.model.increase_general_time(dispersion)
                 self.model.increase_general_time_sd(time_to_read_sd)
 
-                self.progress_signal.emit("Performing saccade...")
+                self.progress_signal.emit("Performing saccade...\n")
 
             self.model.add_average_latency_time()
             self.model.add_standard_deviation_latency_time()
@@ -331,7 +335,6 @@ class Worker(QThread):
 def url_is_correct(path):
     if os.path.exists(path):
         return "file"
-
     try:
         response = requests.head(path)
         if response.status_code == 200:
