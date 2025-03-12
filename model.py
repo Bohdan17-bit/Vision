@@ -142,7 +142,8 @@ class Model:
     def calculate_probability_landing(self, target_word, rest_letters, k):
         d = self.calculate_launch_distance(target_word, rest_letters)
         m = self.calculate_average_landing_position(target_word, d, k)
-        sd = self.calculate_standard_deviation(d, target_word)
+        sd = abs(self.calculate_standard_deviation(d, target_word))
+        print(d, m, sd)
         word_length = len(target_word)
         center_pos = word_length / 2
         m_position = center_pos + m

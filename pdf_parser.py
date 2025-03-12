@@ -180,22 +180,28 @@ class ParserPDF:
         return word
 
     def append_text_span(self, text, bbox, font, size, color, bgcolor, flags, previous_coords):
-        text_span = TextSpanPDF()
-        text_span.set_text(text)
-        text_span.set_coords(bbox[0], bbox[2], bbox[1], bbox[3])
-        text_span.set_font(font)
-        text_span.set_size_text(int(size))
-        text_span.set_color_text(color)
-        text_span.set_background_color(bgcolor)
-        text_span.set_flags(flags)
+        word_length = len(text)
+        max_length = 15
+        repeat_count = (word_length + max_length - 1) // max_length
+        is_long_word = word_length > max_length
+        for _ in range(repeat_count):
+            text_span = TextSpanPDF()
+            text_span.set_text(text)
+            text_span.set_coords(bbox[0], bbox[2], bbox[1], bbox[3])
+            text_span.set_font(font)
+            text_span.set_size_text(int(size))
+            text_span.set_color_text(color)
+            text_span.set_background_color(bgcolor)
+            text_span.set_flags(flags)
+            text_span.long_word = is_long_word
 
-        if previous_coords:
-            distance = self.calculate_distance(previous_coords, bbox)
-            self.list_spans[-1].set_distance_to_next_span(distance)
-        else:
-            text_span.set_distance_to_next_span(0)
+            if previous_coords:
+                distance = self.calculate_distance(previous_coords, bbox)
+                self.list_spans[-1].set_distance_to_next_span(distance)
+            else:
+                text_span.set_distance_to_next_span(0)
 
-        self.list_spans.append(text_span)
+            self.list_spans.append(text_span)
 
     def start(self, filename):
         self.list_spans = []

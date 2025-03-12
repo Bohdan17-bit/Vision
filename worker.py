@@ -136,54 +136,81 @@ class Worker(QThread):
         state = "updated"
         biggest_value_freq = self.freq_dict.get_biggest_frequency()
 
+        shift_step = 15
+        active_step = 0
+
         for word in self.words_spans:
+
+            start_index = shift_step * active_step
+
+            active_step += 1
+
+            if not word.long_word:
+                active_step = 0
 
             if re.match(r'^[.,!?;:]+$', word.text_span):
                 continue
 
-            cleaned_word = self.clean_word(word.text_span)
-            self.progress_signal.emit(f"Next word : {cleaned_word}")
+            cleaned_word = self.clean_word(word.text_span).lower()
 
-            cleaned_word = cleaned_word.lower()
-            memory_word = cleaned_word
+            if word.long_word:
+                self.progress_signal.emit(f"Continuing reading: {cleaned_word}")
+                rest_letters = 0
+            else:
+                self.progress_signal.emit(f"Next word: {cleaned_word}")
 
-            if rest_letters > 5:
-                rest_letters = 5
-
-            index_chose = 0
             word.size = int(word.size)
             found, word.font_span = self.format_font_name(word.font_span)
 
             if not found:
-                self.progress_signal.emit(f"Font not found! Times New Roman, 14 will be used")
+                self.progress_signal.emit("Font not found! Times New Roman, 14 will be used")
             else:
-                self.progress_signal.emit(f"Font properties : {word.font_span}, {int(word.size)}")
+                self.progress_signal.emit(f"Font properties: {word.font_span}, {int(word.size)}")
 
-            coefficient = self.fontsManager.get_coefficient_font_letter(word.font_span, word.size, self.model.PPI)
-            dict_probability = self.model.calculate_probability_landing(cleaned_word, rest_letters, coefficient)
+            if len(word.text_span) < shift_step:
+                max_index_word = len(word.text_span)
+            else:
+                if len(word.text_span) < shift_step * active_step:
+                    max_index_word = len(word.text_span)
+                else:
+                    max_index_word = start_index + shift_step
 
-            self.progress_signal.emit(f"Calculating index of the word : <{cleaned_word}>")
+            partial_word = cleaned_word[start_index: max_index_word + 1]
+
+            coefficient = self.fontsManager.get_coefficient_font_letter(word.font_span, max_index_word, self.model.PPI)
+
+            dict_probability = self.model.calculate_probability_landing(partial_word, rest_letters, coefficient)
+
+            print(f"start_index: {start_index}, max_index_word: {max_index_word}")
+            print(f"word.text_span: {word.text_span}")
+            print(f"partial_word, rest_letters, coefficient: {partial_word}, {rest_letters}, {coefficient}")
+            print(f"dict_probability: {dict_probability}\n")
+
+            self.progress_signal.emit(f"Calculating index of the word: <{cleaned_word}>")
+
+            print("START:", start_index, "END", max_index_word)
 
             if state == "updated":
-                index_chose = self.model.calculate_final_pos_fixation(dict_probability)
+                index_chose = round(self.model.calculate_final_pos_fixation(dict_probability))
 
-                if len(cleaned_word) >= 4 or cleaned_word.isdigit():
-                    if index_chose >= len(cleaned_word):
-                        index_chose = len(cleaned_word) - 1
-                else:
-                    if index_chose == len(cleaned_word):
-                        self.progress_signal.emit("Word was skipped! Landing on the next character!\n")
-                        rest_letters = 0
-                        continue
+                # Гарантуємо, що index_chose знаходиться в межах слова
+                index_chose = max(start_index, min(index_chose, max_index_word))
 
-                    if index_chose > len(cleaned_word):
-                        self.progress_signal.emit("Word was skipped! Landing 2 symbols after the word!\n")
-                        rest_letters = 0
-                        state = "2 symbols after word"
-                        continue
+                rest_letters = len(cleaned_word) - (index_chose + 1)
 
-            self.progress_signal.emit(
-                f"Fixation in word <{cleaned_word}> on character '{cleaned_word[index_chose]}' at index {index_chose + 1}.")
+                # Якщо погляд виходить за межі слова, перескакуємо далі
+                if index_chose >= len(cleaned_word) - 1:
+                    self.progress_signal.emit("Word was skipped! Landing 2 symbols after the word!\n")
+                    rest_letters = 0
+                    previous_part_word = -1  # Забезпечуємо правильний перехід до наступного слова
+                    state = "2 symbols after word"
+                    continue
+
+            if index_chose < len(cleaned_word):
+                self.progress_signal.emit(
+                    f"Fixation in word <{cleaned_word}> on character '{cleaned_word[index_chose]}' at index {index_chose + 1}.")
+            else:
+                self.progress_signal.emit(f"Fixation skipped, index exceeded word length!")
 
             index_saved = index_chose
 
@@ -214,7 +241,7 @@ class Worker(QThread):
                 if self.model.should_refixate(prob_refix):
                     self.progress_signal.emit("------------------Refixation required------------------")
                     time_refix = self.model.make_refixation(word.text_span, index_saved + 1)
-                    self.progress_signal.emit(f"Refixation delay time = {round(time_refix, 3)}")
+                    self.progress_signal.emit(f"Refixation delay time = {int(time_refix)} ms")
                     time_refix_sd = self.model.calculate_sd(time_refix)
                     self.model.increase_general_time(time_refix)
                     self.model.increase_general_time_sd(time_refix_sd)
@@ -272,7 +299,7 @@ class Worker(QThread):
 
                     self.progress_signal.emit(f"Pronounced: {parsed_word}")
                     self.progress_signal.emit(
-                        f"Time required for reading word <{word.text_span}> = {int(time_estimated_per_str)}"
+                        f"Time required for reading word <{word.text_span}> = {int(time_estimated_per_str)} ms"
                     )
                 else:
                     word_original = word.text_span
@@ -284,25 +311,20 @@ class Worker(QThread):
                     )
                     time_estimated_per_str += time_for_word
                     self.progress_signal.emit(
-                        f"Time required for reading word <{word_original}> = {int(time_estimated_per_str)}"
+                        f"Time required for reading word <{word_original}> = {int(time_estimated_per_str)} ms"
                     )
                     time_to_read_sd += self.model.calculate_sd(time_for_word)
 
-                # Розрахунок стандартного відхилення та нормального розподілу
                 time_to_read_sd = self.model.calculate_sd(time_estimated_per_str)
-                dispersion = self.model.calculate_normal_distribution(time_estimated_per_str, time_to_read_sd)
-                self.model.increase_general_time(dispersion)
+                self.model.increase_general_time(time_estimated_per_str)
                 self.model.increase_general_time_sd(time_to_read_sd)
 
                 self.progress_signal.emit("Performing saccade...\n")
 
-            self.model.add_average_latency_time()
-            self.model.add_standard_deviation_latency_time()
-
-            if word.distance_to_next_span > 0:
-                time_saccade = self.model.calculate_time_saccade(word.distance_to_next_span)
-                self.progress_signal.emit(f"\nMoving to the next block... Time required {int(time_saccade)} ms\n")
-                self.model.increase_general_time(time_saccade)
+                if word.distance_to_next_span > 0:
+                    time_saccade = self.model.calculate_time_saccade(word.distance_to_next_span)
+                    self.progress_signal.emit(f"\nMoving to the next block... Time required {int(time_saccade)} ms\n")
+                    self.model.increase_general_time(time_saccade)
 
         final_result = self.get_time_to_read(self.model.get_sum_time_reading(), self.model.get_sum_standard_deviation())
         self.final_result.emit(final_result)
