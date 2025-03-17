@@ -12,7 +12,7 @@ class TextSpanPDF:
         self.coord_x_end = 0
         self.coord_y_end = 0
         self.is_last_in_line = False
-        self.long_word = False
+        self.long = False
 
     def set_background_color(self, bg_color):
         self.background_color = bg_color
