@@ -1,3 +1,4 @@
+import random
 import re
 
 from FontsManager import FontsManager
@@ -7,13 +8,12 @@ import os.path
 import requests
 from PyQt5.QtCore import pyqtSignal, pyqtSlot, QThread
 import time
-from utils import FrequencyDictionary
 
 
 class Worker(QThread):
-    def __init__(self):
+    def __init__(self, freq_dictionary):
         super().__init__()
-        self.freq_dict = FrequencyDictionary()
+        self.freq_dict = freq_dictionary
         self.fontsManager = FontsManager()
         self.freq_dict.start()
         self.model = Model()
@@ -68,13 +68,9 @@ class Worker(QThread):
 
         self.updated_ppi_rounded.emit(str(round(self.model.PPI, 0)))
 
-        self.progress_signal.emit("Loading frequency dictionary...")
-
-        time.sleep(3)
-
         if not self.freq_dict.sheet:
-            self.progress_signal.emit("Frequency dictionary not found!")
-            return
+            self.progress_signal.emit("Loading frequency dictionary...")
+            time.sleep(3)
 
         if "html" in path or "htm" in path and "http" not in path and "https" not in path:
             if url_is_correct(path) is not False:
@@ -170,8 +166,27 @@ class Worker(QThread):
         self.progress_signal.emit("\n")
         return last_word
 
-    def process_short_word(self):
-        pass
+    def process_short_word(self, word, cleaned_word, last_word):
+        last_word["same"] = False
+        last_word["read"] = True
+
+        last_word["rest"] = min(max(last_word["rest"], 0), 10)
+
+        max_index = len(cleaned_word) - 1
+
+        index_landing = self.calculate_index_landing(cleaned_word, last_word["rest"], 1)
+
+        print("Start index: ", 0, "End index: ", max_index)
+
+        self.progress_signal.emit(f"Calculating index of the word: <{word}>")
+
+        last_word["index"] = index_landing
+
+        last_word["rest"] = self.obtain_rest_on_short_word(index_landing, cleaned_word)
+        last_word["skip"] = True
+
+        self.progress_signal.emit("\n")
+        return last_word
 
     def word_time_reading(self, word, biggest_value_freq):
 
@@ -203,7 +218,7 @@ class Worker(QThread):
                                                              segment_lower)
 
                     self.progress_signal.emit(f"Frequency of word: <{segment}> per million: {int(freq)}")
-                    time_per_segment = self.model.calculate_time_reading(segment_lower, len(segment) / 2,
+                    time_per_segment = self.model.calculate_time_reading(segment_lower, random.randint(0, len(segment) // 2),
                                                                          biggest_value_freq, freq)
                     time_to_read_sd += self.model.calculate_sd(time_per_segment)
                     time_estimated_per_str += time_per_segment
@@ -218,7 +233,7 @@ class Worker(QThread):
                     segment_lower = segment.lower()
                     freq = self.freq_dict.find_freq_for_word(self.freq_dict.sheet, self.freq_dict.column,
                                                              segment_lower)
-                    time_per_segment = self.model.calculate_time_reading(segment_lower, len(segment) / 2,
+                    time_per_segment = self.model.calculate_time_reading(segment_lower, random.randint(0, len(segment) // 2),
                                                                          biggest_value_freq, freq)
                     self.progress_signal.emit(f"Frequency of word: <{segment}> per million: {int(freq)}")
                     time_to_read_sd += self.model.calculate_sd(time_per_segment)
@@ -234,7 +249,7 @@ class Worker(QThread):
             freq = self.freq_dict.find_freq_for_word(self.freq_dict.sheet, self.freq_dict.column, word_lower)
             self.progress_signal.emit(f"Frequency of word <{word_original}> per million: {int(freq)}")
             time_for_word = int(
-                self.model.calculate_time_reading(word_lower, int(len(word_lower) / 4), biggest_value_freq, freq)
+                self.model.calculate_time_reading(word_lower, random.randint(0, len(word_lower) // 2), biggest_value_freq, freq)
             )
             time_estimated_per_str += time_for_word
             self.progress_signal.emit(
@@ -287,7 +302,7 @@ class Worker(QThread):
 
             else:
 
-                self.process_short_word()
+                last_word = self.process_short_word(word.text_span, cleaned_word.text_span, last_word)
 
             self.word_time_reading(cleaned_word, most_frequency_value)
 

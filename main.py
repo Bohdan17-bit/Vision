@@ -4,6 +4,8 @@ import time
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtWidgets import QFileDialog
+from utils import FrequencyDictionary
+
 
 from worker import Worker
 
@@ -14,7 +16,8 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
 
     def __init__(self):
         super().__init__()
-        self.worker = Worker()
+        self.freq_dict = FrequencyDictionary()
+        self.worker = Worker(self.freq_dict)
 
     def start_thread(self):
         self.worker.progress_signal.connect(self.add_text_to_process_textedit)
