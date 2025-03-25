@@ -53,6 +53,7 @@ class FontsManager:
 
     def get_coefficient_font_letter(self, font_name, font_size, new_dpi):
         try:
+            new_dpi = int(new_dpi)
             standard_times_14 = self.json_handler.find_combination_font("Times New Roman", 14, 100)
 
             standard_w = standard_times_14["size_width"]

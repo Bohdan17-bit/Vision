@@ -125,6 +125,7 @@ class Model:
         return launch_distance
 
     def calculate_average_landing_position(self, word, d, k):
+        k = 1/k
         m = 3.3 + 0.49 * d * k
         return m
 
@@ -133,38 +134,37 @@ class Model:
         return sd
 
     def calculate_probability_letter_landing(self, x, m, sd):
+        if sd == 0:
+            return 1.0 if x == m else 0.0  # Уникнення ділення на 0
+
         q = math.sqrt(2 * math.pi) * sd
-        ch = (x - m) ** 2
+        ch = abs(x - m) ** 2
         zn = 2 * (sd * sd)
-        prob = 1 / q * math.exp(-ch / zn)
+        prob = (1 / q) * math.exp(-ch / zn)  # Правильний порядок обчислень
         return prob
 
     def calculate_probability_landing(self, target_word, rest_letters, k):
         d = self.calculate_launch_distance(target_word, rest_letters)
         m = self.calculate_average_landing_position(target_word, d, k)
         sd = abs(self.calculate_standard_deviation(d, target_word))
+
         print(d, m, sd)
+
         word_length = len(target_word)
         center_pos = word_length / 2
-        m_position = center_pos + m
+        m_position = max(0, center_pos + m)  # Гарантуємо, що не вилізли за ліву межу
+
         word_dict_probability = {}
-        # print(f"For word <{target_word}> m position = {m_position}")
+
         for index, letter in enumerate(target_word):
             x = m_position - index
-            # print(f"For letter {letter} in word <{target_word}> x = {round(x, 3)}")
             landing_prob = self.calculate_probability_letter_landing(x, m, sd)
-            # print(f"For letter {letter} in word <{target_word}> probability = {round(landing_prob, 3)}")
             word_dict_probability[index] = landing_prob
 
-        x = m_position - word_length
+        # Обчислення ймовірності після останньої літери
+        x = m_position - (word_length - 1)
         prob = self.calculate_probability_letter_landing(x, m, sd)
-        word_dict_probability[word_length] = prob
-        # print(f"After word first symbol has probability : {round(prob, 3)}")
-
-        x = m_position - word_length - 1
-        prob = self.calculate_probability_letter_landing(x, m, sd)
-        word_dict_probability[word_length + 1] = prob
-        # print(f"After word second symbol has probability : {round(prob, 3)}")
+        word_dict_probability[word_length - 1] = prob  # Записуємо для останньої літери
 
         return word_dict_probability
 

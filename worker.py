@@ -1,3 +1,4 @@
+import copy
 import random
 import re
 
@@ -130,6 +131,9 @@ class Worker(QThread):
 
     def process_long_word(self, word, cleaned_word, size_step, last_word):
 
+        part_text = copy.deepcopy(word)
+        coefficient = self.calculate_cf(part_text)
+
         start_index = last_word["index"]
 
         if not last_word["same"]:
@@ -138,6 +142,9 @@ class Worker(QThread):
         if last_word["rest"] >= 10:
             last_word["rest"] = 10
 
+        size_step = coefficient * size_step
+        size_step = int(size_step)
+        print("size_step:", size_step)
         max_index = size_step + start_index
 
         if len(cleaned_word) < size_step + start_index:
@@ -149,21 +156,24 @@ class Worker(QThread):
             last_word["index"] = 0
 
         text = cleaned_word[start_index: max_index]
-        index_landing = self.calculate_index_landing(text, last_word["rest"], 1)
+
+        part_text.text_span = text
+
+        index_landing = self.calculate_index_landing(part_text.text_span, last_word["rest"], coefficient)
 
         print("Start index: ", start_index, "End index: ", max_index)
 
-        self.progress_signal.emit(f"Calculating index of the word: <{word}>")
+        self.progress_signal.emit(f"Calculating index of the word: <{word.text_span}>")
 
         if index_landing + start_index >= len(cleaned_word):
             index_landing = len(cleaned_word) - start_index - 1
 
         last_word["index"] = last_word["index"] + index_landing
 
-        print(last_word)
+        print("word", word.text_span)
+        print("cleaned word", cleaned_word)
 
-        self.show_fixation_on_long_word(word, index_landing + start_index)
-        self.progress_signal.emit("\n")
+        self.show_fixation_on_long_word(word.text_span, index_landing + start_index)
         return last_word
 
     def process_short_word(self, word, cleaned_word, last_word):
@@ -174,21 +184,26 @@ class Worker(QThread):
 
         max_index = len(cleaned_word) - 1
 
-        index_landing = self.calculate_index_landing(cleaned_word, last_word["rest"], 1)
+        coefficient = self.font_cf_handler(word)
+
+        index_landing = self.calculate_index_landing(word.text_span, last_word["rest"], coefficient)
 
         print("Start index: ", 0, "End index: ", max_index)
 
-        self.progress_signal.emit(f"Calculating index of the word: <{word}>")
+        self.progress_signal.emit(f"Calculating index of the word: <{word.text_span}>")
 
         last_word["index"] = index_landing
 
         last_word["rest"] = self.obtain_rest_on_short_word(index_landing, cleaned_word)
-        last_word["skip"] = True
 
-        self.progress_signal.emit("\n")
+        if last_word["rest"] == 0:
+            last_word["skip"] = True
+        else:
+            last_word["skip"] = False
+
         return last_word
 
-    def word_time_reading(self, word, biggest_value_freq):
+    def word_time_reading(self, word, biggest_value_freq, index_landing):
 
         time_estimated_per_str = 0
         time_to_read_sd = 0
@@ -248,9 +263,14 @@ class Worker(QThread):
             word_lower = word.text_span.lower()
             freq = self.freq_dict.find_freq_for_word(self.freq_dict.sheet, self.freq_dict.column, word_lower)
             self.progress_signal.emit(f"Frequency of word <{word_original}> per million: {int(freq)}")
-            time_for_word = int(
-                self.model.calculate_time_reading(word_lower, random.randint(0, len(word_lower) // 2), biggest_value_freq, freq)
-            )
+            if index_landing == 0:
+                time_for_word = int(
+                    self.model.calculate_time_reading(word_lower, random.randint(0, len(word_lower) // 2), biggest_value_freq, freq)
+                )
+            else:
+                time_for_word = int(
+                    self.model.calculate_time_reading(word_lower, index_landing, biggest_value_freq, freq)
+                )
             time_estimated_per_str += time_for_word
             self.progress_signal.emit(
                 f"Time required for reading word <{word_original}> = {int(time_estimated_per_str)} ms"
@@ -261,12 +281,37 @@ class Worker(QThread):
         self.model.increase_general_time(time_estimated_per_str)
         self.model.increase_general_time_sd(time_to_read_sd)
 
-        self.progress_signal.emit("Performing saccade...\n")
+        self.progress_signal.emit("\nPerforming saccade...")
 
         if word.distance_to_next_span > 0:
             time_saccade = self.model.calculate_time_saccade(word.distance_to_next_span)
             self.progress_signal.emit(f"Moving to the next block... Time required {int(time_saccade)} ms\n")
             self.model.increase_general_time(time_saccade)
+
+    def calculate_cf(self, word):
+        word.size = int(word.size)
+        found, word.font_span = self.format_font_name(word.font_span)
+        return self.fontsManager.get_coefficient_font_letter(word.font_span, word.size, self.model.PPI)
+
+    def font_cf_handler(self, word):
+        word.size = int(word.size)
+        found, word.font_span = self.format_font_name(word.font_span)
+
+        if not found:
+            self.progress_signal.emit("Font not found! Times New Roman, 14 will be used")
+        else:
+            self.progress_signal.emit(f"Font properties: {word.font_span}, {int(word.size)}")
+
+        coefficient = self.fontsManager.get_coefficient_font_letter(word.font_span, word.size, self.model.PPI)
+
+        if coefficient > 1:
+            self.progress_signal.emit(f"The font size is smaller than standard by a factor of {coefficient:.2f}x")
+        elif coefficient == 1:
+            self.progress_signal.emit(f"The identified font size is standard.")
+        else:
+            self.progress_signal.emit(f"The font size is larger than standard by a factor of {(1 / coefficient):.2f}x")
+
+        return coefficient
 
     def start_analyze(self):
 
@@ -282,50 +327,80 @@ class Worker(QThread):
             "index": 0,
         }
 
+        distance = self.model.parserPDF.get_distance_to_first_span()
+        if distance > 0:
+            time_saccade = self.model.calculate_time_saccade(distance)
+            self.progress_signal.emit(f"Moving to the first block... Time required {int(time_saccade)} ms\n")
+            self.model.increase_general_time(time_saccade)
+
         for word in self.words_spans:
 
             if re.match(r'^[.,!?;:]+$', word.text_span):
                 continue
 
-            cleaned_word = self.clean_word(word)
+            cleaned_word = copy.deepcopy(word)
+            cleaned_word = self.clean_word(cleaned_word)
+            self.progress_signal.emit(f"Next word: {word.text_span}")
 
             if word.long:
 
                 last_word["same"] = False
                 last_word["read"] = False
+                self.font_cf_handler(word)
 
                 while last_word["read"] is False:
 
-                    print("Current word :", word.text_span)
-                    last_word = self.process_long_word(word.text_span, cleaned_word.text_span, size_step, last_word)
+                    last_word = self.process_long_word(word, cleaned_word.text_span, size_step, last_word)
                     last_word["same"] = True
+
+                self.word_time_reading(cleaned_word, most_frequency_value, 0)
 
             else:
 
-                last_word = self.process_short_word(word.text_span, cleaned_word.text_span, last_word)
+                last_word = self.process_short_word(word, cleaned_word.text_span, last_word)
 
-            self.word_time_reading(cleaned_word, most_frequency_value)
+                if last_word["skip"] is False:
+                    self.word_time_reading(cleaned_word, most_frequency_value, last_word["index"])
 
         self.progress_signal.emit("Analysis completed.\n")
+        final_result = self.get_time_to_read(self.model.get_sum_time_reading(), self.model.get_sum_standard_deviation())
+        self.final_result.emit(final_result)
+        self.reset_results()
 
     def calculate_index_landing(self, partial_word, rest_letters, coefficient):
         dict_probability = self.model.calculate_probability_landing(partial_word, rest_letters, coefficient)
+        print(dict_probability)
         return round(self.model.calculate_final_pos_fixation(dict_probability))
 
     def obtain_rest_on_short_word(self, index_landing, short_word):
         if index_landing < len(short_word):
             self.progress_signal.emit(
-                f"Fixation in word <{short_word}> on character '{short_word[index_landing]}' at index {index_landing}.")
-            return len(short_word) - (index_landing + 1)
+                f"Fixation in word <{short_word}> on character '{short_word[index_landing]}' at index {index_landing+1}.")
+            self.refixation_check(short_word, index_landing)
+            return len(short_word) - index_landing
+
         elif index_landing == len(short_word):
-            self.progress_signal.emit(f"Word was skipped! Landing on the next character!\n")
+            self.progress_signal.emit(f"Word was skipped! Landing on the next character!")
             return 0
         else:
-            self.progress_signal.emit(f"Word was skipped! Landing on 2 symbols after the word!\n")
+            self.progress_signal.emit(f"Word was skipped! Landing on 2 symbols after the word!")
             return 0
 
+    def refixation_check(self, word, index_chose):
+        prob_refix = self.model.calculate_probability_refixation(word, index_chose)
+        self.progress_signal.emit(f"Probability of refixation = {round(prob_refix, 3)}")
+        if self.model.should_refixate(prob_refix):
+            self.progress_signal.emit("------------------Refixation required------------------")
+            time_refix = self.model.make_refixation(word, index_chose + 1)
+            self.progress_signal.emit(f"Refixation delay time = {int(time_refix)} ms")
+            time_refix_sd = self.model.calculate_sd(time_refix)
+            self.model.increase_general_time(time_refix)
+            self.model.increase_general_time_sd(time_refix_sd)
+        else:
+            self.progress_signal.emit("Refixation not required...")
+
     def show_fixation_on_long_word(self, word, index):
-        self.progress_signal.emit(f"Fixation in word <{word}> on character '{word[index]}' at index {index}.")
+        self.progress_signal.emit(f"Fixation in word <{word}> on character '{word[index-1]}' at index {index}.")
 
     def get_time_to_read(self, time: float, sd_time: float) -> str:
         min = int(time // 60000)
