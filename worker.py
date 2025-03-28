@@ -69,9 +69,10 @@ class Worker(QThread):
 
         self.updated_ppi_rounded.emit(str(round(self.model.PPI, 0)))
 
-        if not self.freq_dict.sheet:
-            self.progress_signal.emit("Loading frequency dictionary...")
-            time.sleep(3)
+        self.progress_signal.emit("Loading frequency dictionary...")
+
+        while not self.freq_dict.sheet:
+            time.sleep(2)
 
         if "html" in path or "htm" in path and "http" not in path and "https" not in path:
             if url_is_correct(path) is not False:
@@ -307,10 +308,12 @@ class Worker(QThread):
             time_estimated_per_str = 0
             time_to_read_sd = 0
 
-            if self.long_word_contain_digit(word) or any(char in word for char in
-                                                    "-'’`.") or word.lower() in self.freq_dict.abbreviations:
-
-                word_cleaned = word.lower().replace("’", "'").replace("`", "'").replace(".", "")
+            if self.long_word_contain_digit(word) or any(
+                    char in word for char in "-'’‛′`") or word.lower() in self.freq_dict.abbreviations:
+                word_cleaned = word.lower().translate(str.maketrans({
+                    "’": "'", "‛": "'", "′": "'", "`": "'",
+                    ".": "",
+                }))
 
                 # Special handling for "etc"
                 if "etc" in word.lower():
@@ -331,7 +334,6 @@ class Worker(QThread):
                         freq = self.freq_dict.find_freq_for_word(self.freq_dict.sheet, self.freq_dict.column,
                                                                  segment_lower)
 
-                        self.progress_signal.emit(f"Frequency of word: <{segment}> per million: {int(freq)}")
                         time_per_segment = self.model.calculate_time_reading(segment_lower,
                                                                              random.randint(0, len(segment) // 2),
                                                                              biggest_value_freq, freq)
@@ -388,7 +390,9 @@ class Worker(QThread):
         found, word.font_span = self.format_font_name(word.font_span)
 
         if not found:
-            self.progress_signal.emit("Font not found! Times New Roman, 14 will be used")
+            self.progress_signal.emit("Font Name not found! Times New Roman will be used")
+            if word.size:
+                self.progress_signal.emit(f"Font size found: {word.size}")
         else:
             self.progress_signal.emit(f"Font properties: {word.font_span}, {int(word.size)}")
 
@@ -425,12 +429,17 @@ class Worker(QThread):
 
         for word in self.words_spans:
 
-            if re.match(r'^[.,!?;:]+$', word.text_span):
+            if re.match(r'^[.,!-?;:]+$', word.text_span):
                 continue
 
             cleaned_word = copy.deepcopy(word)
             cleaned_word = self.clean_word(cleaned_word)
             self.progress_signal.emit(f"Next word: {word.text_span}")
+
+            if self.freq_dict.find_freq_for_word(self.freq_dict.sheet, self.freq_dict.column,
+                                                 cleaned_word.text_span.lower()):
+                print("This word was identified as a short!")
+                word.long = False
 
             if word.long:
 
@@ -453,6 +462,8 @@ class Worker(QThread):
 
                 if last_word["skip"] is False:
                     self.word_time_reading_short(cleaned_word, most_frequency_value, last_word["index"])
+
+            self.progress_signal.emit("\n")
 
         self.progress_signal.emit("\nAnalysis completed.\n")
         final_result = self.get_time_to_read(self.model.get_sum_time_reading(), self.model.get_sum_standard_deviation())
