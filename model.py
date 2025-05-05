@@ -16,8 +16,14 @@ class Model:
 
     list_text_spans = []
 
+    default_visible_width = 5
+    real_visible_width = 5
+
+    coefficient_distance = 1
+
     average_saccade_latency = 150
     standard_deviation_latency = 50
+    angle_view = 5
 
     distance_to_display = 0
     width_px = 0
@@ -37,6 +43,25 @@ class Model:
     def reset_results(self):
         self.__full_time_to_read = 0
         self.__full_time_standard_deviation = 0
+
+    def set_visible_width(self):
+        if self.distance_to_display > 0:
+            angle_rad = math.radians(self.angle_view / 2)
+            v_w = 2 * self.distance_to_display * math.tan(angle_rad)
+
+            if v_w > 10:
+                v_w = 10
+            elif v_w < 1:
+                v_w = 1
+
+            self.real_visible_width = v_w
+
+            print(f"Visible width: {self.real_visible_width:.2f} см")
+
+    def calculate_distance_cf(self):
+        self.coefficient_distance = self.real_visible_width / self.default_visible_width
+        print("Coefficient of distance: ", self.coefficient_distance)
+        return self.coefficient_distance
 
     def read_text_from_pdf(self):
         self.reset_results()
@@ -100,8 +125,10 @@ class Model:
     def get_text_list_spans(self):
         return self.list_text_spans
 
-    def add_average_latency_time(self):
-        self.__full_time_to_read += self.average_saccade_latency
+    def calculate_average_latency_time(self):
+        time = self.calculate_normal_distribution(self.average_saccade_latency, self.standard_deviation_latency)
+        self.__full_time_to_read += time
+        return time
 
     def add_standard_deviation_latency_time(self):
         self.__full_time_standard_deviation += self.standard_deviation_latency
