@@ -127,19 +127,19 @@ class Model:
 
     def calculate_average_latency_time(self):
         time = self.calculate_normal_distribution(self.average_saccade_latency, self.standard_deviation_latency)
-        self.__full_time_to_read += time
         return time
 
-    def add_standard_deviation_latency_time(self):
-        self.__full_time_standard_deviation += self.standard_deviation_latency
-
     def increase_general_time(self, time):
+        print("-------------------------")
+        print(f"Added time to general: {time} ms")
+        print("-------------------------")
         self.__full_time_to_read += time
 
     def increase_general_time_sd(self, time):
         self.__full_time_standard_deviation += time
 
     def get_sum_time_reading(self):
+        print("Now we show.......full time to read!!!!", self.__full_time_to_read)
         return self.__full_time_to_read
 
     def get_sum_standard_deviation(self):
@@ -175,8 +175,6 @@ class Model:
         m = self.calculate_average_landing_position(target_word, d, k)
         sd = abs(self.calculate_standard_deviation(d, target_word))
 
-        print(d, m, sd)
-
         word_length = len(target_word)
         center_pos = word_length / 2
         m_position = max(0, center_pos + m)  # Гарантуємо, що не вилізли за ліву межу
@@ -188,10 +186,9 @@ class Model:
             landing_prob = self.calculate_probability_letter_landing(x, m, sd)
             word_dict_probability[index] = landing_prob
 
-        # Обчислення ймовірності після останньої літери
-        x = m_position - (word_length - 1)
-        prob = self.calculate_probability_letter_landing(x, m, sd)
-        word_dict_probability[word_length - 1] = prob  # Записуємо для останньої літери
+        x = m_position - word_length
+        skip_prob = self.calculate_probability_letter_landing(x, m, sd)
+        word_dict_probability[word_length] = skip_prob
 
         return word_dict_probability
 
