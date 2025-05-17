@@ -385,7 +385,7 @@ class Worker(QThread):
                 dict_probability = self.model.calculate_probability_landing(cleaned_word.text_span, last_word["rest"], coefficient)
                 index_chose = self.model.calculate_final_pos_fixation(dict_probability)
 
-                index_chose = min(index_chose, len(word.text_span) - 1)
+                index_chose = min(index_chose, len(word.text_span))
                 index_chose = max(index_chose, 0)
 
                 try:
