@@ -31,12 +31,28 @@ class Worker(QThread):
         self.model.reset_results()
 
     def receive_data_from_ui(self, data):
-        if data["width_px"] and data["height_px"] and data["distance_cm"] and data["diagonal_inches"]:
+
+        try:
             self.model.set_width_px(int(data["width_px"]))
+        except (ValueError, TypeError):
+            pass
+
+        try:
             self.model.set_height_px(int(data["height_px"]))
-            self.model.set_distance_to_display(float(data["distance_cm"]))
-            self.model.set_diagonal_inches(float(data["diagonal_inches"]))
-            self.model.set_visible_width()
+        except (ValueError, TypeError):
+            pass
+
+        try:
+            self.model.set_distance_to_display(int(data["distance_cm"]))
+        except (ValueError, TypeError):
+            pass
+
+        try:
+            self.model.set_diagonal_inches(int(data["diagonal_inches"]))
+        except (ValueError, TypeError):
+            pass
+
+        self.model.set_visible_width()
 
     def update_url(self, path):
         self.model.set_path(path)
@@ -49,8 +65,6 @@ class Worker(QThread):
 
         self.reset_results()
 
-        print("Starting data processing...")
-
         path = self.model.path
 
         if path == "":
@@ -61,8 +75,8 @@ class Worker(QThread):
             self.data_signal.emit("Warning", "Website or file not found!")
             return
 
-        if (self.model.height_px <= 0 and self.model.width_px <= 0 and self.model.distance_to_display <= 0
-                and self.model.PPI <= 0 and self.model.diagonal_inches <= 0):
+        if (self.model.height_px <= 0 or self.model.width_px <= 0 or self.model.distance_to_display <= 0
+                or self.model.diagonal_inches <= 0):
             self.data_signal.emit("Error", "Please fill in all fields!")
             return
 
@@ -187,7 +201,7 @@ class Worker(QThread):
 
             self.progress_signal.emit(f"Pronounced: {parsed_word}")
             self.progress_signal.emit(
-                f"Time required for reading text <{word.text_span}> = {int(time_estimated_per_str)} ms"
+                f"Time required for reading complex text <{word.text_span}> = {int(time_estimated_per_str)} ms"
             )
         else:
             word_original = word.text_span
@@ -213,6 +227,7 @@ class Worker(QThread):
 
     def font_cf_handler(self, word):
         word.size = int(word.size)
+
         found, word.font_span = self.format_font_name(word.font_span)
 
         if not found:
@@ -251,7 +266,6 @@ class Worker(QThread):
         most_frequency_value = self.freq_dict.get_biggest_frequency()
 
         default_size_step = 15 * self.model.calculate_distance_cf()
-        print("Default size step : ", default_size_step)
         self.progress_signal.emit(
             "Standard shift to the right: 14-15 letters for 14 points Times New Roman (distance: 55 cm).")
         self.progress_signal.emit(
@@ -300,7 +314,7 @@ class Worker(QThread):
                 continue
 
             self.progress_signal.emit(
-                f"Total time required for reading word : {word.text_span} = {word_time} ms")
+                f"Total time required for reading word : {word.text_span} = {int(word_time)} ms")
 
             if i + 1 < len(self.words_spans):
                 self.progress_signal.emit("Programming a saccade...")
@@ -322,7 +336,7 @@ class Worker(QThread):
                             word.get_coords(),
                             next_next_word.get_coords()
                         )
-                        time_saccade = self.model.calculate_time_saccade(distance_cm)
+                        time_saccade = self.model.calculate_time_saccade(distance_cm) * 2
                         self.progress_signal.emit("\nPerforming saccade...")
                         self.progress_signal.emit(f"Moving to the next word. Time required {int(time_saccade)} ms\n")
                         self.model.increase_general_time(time_saccade)
@@ -347,9 +361,17 @@ class Worker(QThread):
 
     def read(self, word, cleaned_word, last_word, coefficient, default_size_step, most_frequency_value):
 
+        if default_size_step < 2:
+            default_size_step = 2
+
+        if not word.text_span or not cleaned_word.text_span:
+            last_word["state"] = "skip"
+            last_word["rest"] = 0
+            last_word["index"] = 0
+            return last_word
+
         #---------short word that available to overflight -----------
         if len(word.text_span) < 4:
-
             #-------if last word was skipped, fixation on first symbol --------------
             if last_word["state"] == "skip":
                 last_word["index"] = 0
@@ -359,13 +381,21 @@ class Worker(QThread):
                 return last_word
 
             #-------if last word was read regularly, calculating index landing -----------
-            elif last_word["state"] == "read":
-                print("We are here with word", word.text_span)
-
+            else:
                 dict_probability = self.model.calculate_probability_landing(cleaned_word.text_span, last_word["rest"], coefficient)
                 index_chose = self.model.calculate_final_pos_fixation(dict_probability)
 
-                result = self.get_and_show_rest_of_word(index_chose, word.text_span)
+                index_chose = min(index_chose, len(word.text_span) - 1)
+                index_chose = max(index_chose, 0)
+
+                try:
+                    result = self.get_and_show_rest_of_word(index_chose, word.text_span)
+                except IndexError:
+                    last_word["state"] = "skip"
+                    last_word["rest"] = 0
+                    last_word["index"] = 0
+                    return last_word
+
                 last_word["index"] = index_chose
 
                 #-------if word was skipped by overflight saccade--------------
@@ -379,45 +409,59 @@ class Worker(QThread):
 
                 return last_word
 
-        #---------regular word that can't be overflight ----------------
         else:
-
-            #--------if we can read it with one fixation ----------------
-            if coefficient * default_size_step >= len(word.text_span):
+            # --------- regular word that can't be overflight -------------
+            # -------- if we can read it with one fixation ----------------
+            if coefficient * default_size_step > len(word.text_span) and last_word["rest"] == 0:
                 if last_word["state"] == "skip":
                     index_landing = 0
                 else:
                     min_index = 0
                     max_index = len(word.text_span) - 1
-                    index_landing = self.calculate_index_landing(word.text_span[min_index:max_index], last_word["rest"], coefficient)
-
+                    index_landing = self.calculate_index_landing(
+                        word.text_span[min_index:max_index],
+                        last_word["rest"],
+                        coefficient
+                    )
+                    if index_landing > 5:
+                        index_landing = 5
                 self.get_and_show_rest_of_word(index_landing, word.text_span)
                 last_word["index"] = index_landing
                 last_word["state"] = "read"
                 last_word["rest"] = len(word.text_span) - 1 - index_landing
                 return last_word
 
-            #--------if we need a few fixations to read a word --------
+            # -------- if we need a few fixations to read a word --------
             else:
                 word_not_read = True
                 min_index = 0
-                visible_zone = int(coefficient * default_size_step)
+                visible_zone = max(2, int(coefficient * default_size_step))
                 total_reading_time = 0
-
                 while word_not_read:
-                    max_index = min(min_index + visible_zone, len(word.text_span))
+                    max_index_limit = max(len(word.text_span) - 2, min_index)
+                    max_index = min(min_index + visible_zone, max_index_limit)
 
-                    index_landing = self.calculate_index_landing(
-                        word.text_span[min_index:max_index],
-                        last_word["rest"],
-                        coefficient
-                    )
+                    if max_index <= min_index:
+                        global_index = len(word.text_span) - 2
+                        word_not_read = False
+                    else:
+                        index_landing = self.calculate_index_landing(
+                            word.text_span[min_index:max_index],
+                            last_word["rest"],
+                            coefficient
+                        )
+                        global_index = index_landing + min_index
 
-                    global_index = index_landing + min_index
+                        global_index = min(global_index, len(word.text_span) - 2)
+
+                        if min_index == 0 and global_index > 2:
+                            global_index = 2
+
+                        if global_index <= last_word["index"]:
+                            word_not_read = False
+
                     last_word["index"] = global_index
-
                     total_reading_time += self.word_time_reading(word, most_frequency_value, global_index)
-
                     self.get_and_show_rest_of_word(global_index, word.text_span)
 
                     rest = len(word.text_span) - (global_index + visible_zone)
@@ -426,11 +470,21 @@ class Worker(QThread):
                     if rest <= 0:
                         word_not_read = False
                     else:
-                        min_index = global_index + visible_zone
+                        min_index = global_index + 1
+
+                    if word_not_read:
+                        self.make_short_saccade(word)
 
                 last_word["time"] = total_reading_time
                 last_word["state"] = "read"
                 return last_word
+
+    def make_short_saccade(self, word):
+        self.progress_signal.emit("Performing saccade...")
+        w, h = self.fontsManager.get_size_letter_into_cm('a', word.font_span, int(word.size), 100)
+        time_saccade = self.model.calculate_time_saccade(w * len(word.text_span) / 2)
+        self.progress_signal.emit(f"Moving to the next part of word. Time required {int(time_saccade)} ms")
+        self.model.increase_general_time(time_saccade)
 
     def get_and_show_rest_of_word(self, index_landing, word):
         if index_landing < len(word):
@@ -456,7 +510,7 @@ class Worker(QThread):
         time_latency = self.model.calculate_average_latency_time()
         if time_latency < 50:
             time_latency = 50
-        self.progress_signal.emit(f"Saccade delay calculated: {int(time_latency)}")
+        self.progress_signal.emit(f"Saccade delay calculated: {int(time_latency)} ms")
         self.model.increase_general_time(int(time_latency))
         self.model.increase_general_time_sd(self.model.calculate_sd(self.model.standard_deviation_latency))
         return int(time_latency)
@@ -534,5 +588,4 @@ def url_is_correct(path):
         else:
             return False
     except requests.exceptions.RequestException as e:
-        print(f"Error while checking the URL: {e}")
         return False

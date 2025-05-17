@@ -77,7 +77,6 @@ class ParserWeb:
         for elem in elements:
             try:
                 text = elem.text.strip()
-                print(text)
 
                 if not text or all(char in {'.', ',', '-', ' ', '<', '>', '!', '?', "'", "’"} for char in text):
                     continue

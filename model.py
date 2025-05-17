@@ -56,11 +56,8 @@ class Model:
 
             self.real_visible_width = v_w
 
-            print(f"Visible width: {self.real_visible_width:.2f} см")
-
     def calculate_distance_cf(self):
         self.coefficient_distance = self.real_visible_width / self.default_visible_width
-        print("Coefficient of distance: ", self.coefficient_distance)
         return self.coefficient_distance
 
     def read_text_from_pdf(self):
@@ -101,20 +98,15 @@ class Model:
             new_name = os.path.splitext(decoded_path)[0] + ".pdf"
 
             if os.path.exists(new_name):
-                print(f"Existing file is deleting...: {new_name}")
                 os.remove(new_name)
-
-            print(f"Converting the file: {decoded_path}")
 
             convert(decoded_path, new_name)
 
             self.set_path(new_name)
 
-            print(f"The file was successfully converted: {new_name}")
             return new_name
 
         except Exception as e:
-            print(f"Error was occurred! The file was not converted! Error: {e}")
             return e
 
     def split_string(self, text):
@@ -130,16 +122,12 @@ class Model:
         return time
 
     def increase_general_time(self, time):
-        print("-------------------------")
-        print(f"Added time to general: {time} ms")
-        print("-------------------------")
         self.__full_time_to_read += time
 
     def increase_general_time_sd(self, time):
         self.__full_time_standard_deviation += time
 
     def get_sum_time_reading(self):
-        print("Now we show.......full time to read!!!!", self.__full_time_to_read)
         return self.__full_time_to_read
 
     def get_sum_standard_deviation(self):

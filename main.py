@@ -2,7 +2,8 @@
 import time
 
 from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtCore import pyqtSignal
+from PyQt5.QtCore import pyqtSignal, QRegularExpression
+from PyQt5.QtGui import QRegularExpressionValidator
 from PyQt5.QtWidgets import QFileDialog
 from utils import FrequencyDictionary
 
@@ -185,7 +186,13 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.Diagonal_LineEdit.sizePolicy().hasHeightForWidth())
+
+        regex = QRegularExpression("^[1-9][0-9]*$")
+        validator = QRegularExpressionValidator(regex)
+
         self.Diagonal_LineEdit.setSizePolicy(sizePolicy)
+        self.Diagonal_LineEdit.setValidator(validator)
+
         font = QtGui.QFont()
         font.setPointSize(14)
         self.Diagonal_LineEdit.setFont(font)
@@ -193,6 +200,8 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
         self.Diagonal_LineEdit.setObjectName("Diagonal_LineEdit")
         self.verticalLayout_3.addWidget(self.Diagonal_LineEdit)
         self.Distance_LineEdit_2 = QtWidgets.QLineEdit(self.centralwidget)
+        self.Distance_LineEdit_2.setValidator(validator)
+
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
@@ -210,6 +219,8 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.Distance_LineEdit_3.sizePolicy().hasHeightForWidth())
         self.Distance_LineEdit_3.setSizePolicy(sizePolicy)
+        self.Distance_LineEdit_3.setValidator(validator)
+
         font = QtGui.QFont()
         font.setPointSize(14)
         self.Distance_LineEdit_3.setFont(font)
@@ -222,6 +233,7 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.Distance_LineEdit.sizePolicy().hasHeightForWidth())
         self.Distance_LineEdit.setSizePolicy(sizePolicy)
+        self.Distance_LineEdit.setValidator(validator)
         font = QtGui.QFont()
         font.setPointSize(14)
         self.Distance_LineEdit.setFont(font)
@@ -229,6 +241,8 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
         self.Distance_LineEdit.setObjectName("Distance_LineEdit")
         self.verticalLayout_3.addWidget(self.Distance_LineEdit)
         self.DPI_LineEdit = QtWidgets.QLineEdit(self.centralwidget)
+        self.DPI_LineEdit.setValidator(validator)
+
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
