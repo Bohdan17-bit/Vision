@@ -195,10 +195,20 @@ class ParserPDF:
         if previous_coords:
             distance = self.calculate_distance(previous_coords, bbox)
             self.list_spans[-1].set_distance_to_next_span(distance)
+
         else:
             text_span.set_distance_to_next_span(0)
 
         self.list_spans.append(text_span)
+
+    def get_distance_to_first_span(self):
+        if self.list_spans:
+            return self.calculate_distance((0, 0, 0, 0), (self.list_spans[0].coord_x_start,
+                                                          self.list_spans[0].coord_x_end,
+                                                          self.list_spans[0].coord_y_start,
+                                                          self.list_spans[0].coord_y_end))
+        else:
+            return -1
 
     def start(self, filename):
         self.list_spans = []

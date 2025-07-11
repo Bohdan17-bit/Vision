@@ -78,11 +78,17 @@ class ParserWeb:
             try:
                 text = elem.text.strip()
 
-                if not text or all(char in {'.', ',', '-', ' ', '<', '>'} for char in text):
+                if not text or all(char in {'.', ',', '-', ' ', '<', '>', '!', '?', "'", "’"} for char in text):
                     continue
 
-                split_text = re.split(r'[.,\-\s<>]+', text)
-                split_text = [part for part in split_text if part]  # Видаляємо порожні частини
+                # Замінюємо лапки на пробіли
+                text = re.sub(r'[“”"«»„\'’]', ' ', text).strip()
+
+                # Видаляємо зайві пробіли після заміни лапок
+                text = re.sub(r'\s+', ' ', text)
+
+                # Розбиваємо текст, виключаючи розділові знаки
+                split_text = [part for part in re.split(r'[.,\-\s<>!?]+', text) if part]
 
                 for part in split_text:
                     if re.match(r'^[a-zA-Zа-яА-ЯіїєґІЇЄҐ0-9©]+$', part):  # Тільки текст, числа та знак ©

@@ -16,8 +16,14 @@ class Model:
 
     list_text_spans = []
 
+    default_visible_width = 5
+    real_visible_width = 5
+
+    coefficient_distance = 1
+
     average_saccade_latency = 150
     standard_deviation_latency = 50
+    angle_view = 5
 
     distance_to_display = 0
     width_px = 0
@@ -37,6 +43,22 @@ class Model:
     def reset_results(self):
         self.__full_time_to_read = 0
         self.__full_time_standard_deviation = 0
+
+    def set_visible_width(self):
+        if self.distance_to_display > 0:
+            angle_rad = math.radians(self.angle_view / 2)
+            v_w = 2 * self.distance_to_display * math.tan(angle_rad)
+
+            if v_w > 10:
+                v_w = 10
+            elif v_w < 1:
+                v_w = 1
+
+            self.real_visible_width = v_w
+
+    def calculate_distance_cf(self):
+        self.coefficient_distance = self.real_visible_width / self.default_visible_width
+        return self.coefficient_distance
 
     def read_text_from_pdf(self):
         self.reset_results()
@@ -76,20 +98,15 @@ class Model:
             new_name = os.path.splitext(decoded_path)[0] + ".pdf"
 
             if os.path.exists(new_name):
-                print(f"Existing file is deleting...: {new_name}")
                 os.remove(new_name)
-
-            print(f"Converting the file: {decoded_path}")
 
             convert(decoded_path, new_name)
 
             self.set_path(new_name)
 
-            print(f"The file was successfully converted: {new_name}")
             return new_name
 
         except Exception as e:
-            print(f"Error was occurred! The file was not converted! Error: {e}")
             return e
 
     def split_string(self, text):
@@ -100,11 +117,9 @@ class Model:
     def get_text_list_spans(self):
         return self.list_text_spans
 
-    def add_average_latency_time(self):
-        self.__full_time_to_read += self.average_saccade_latency
-
-    def add_standard_deviation_latency_time(self):
-        self.__full_time_standard_deviation += self.standard_deviation_latency
+    def calculate_average_latency_time(self):
+        time = self.calculate_normal_distribution(self.average_saccade_latency, self.standard_deviation_latency)
+        return time
 
     def increase_general_time(self, time):
         self.__full_time_to_read += time
@@ -125,6 +140,7 @@ class Model:
         return launch_distance
 
     def calculate_average_landing_position(self, word, d, k):
+        k = 1/k
         m = 3.3 + 0.49 * d * k
         return m
 
@@ -133,38 +149,34 @@ class Model:
         return sd
 
     def calculate_probability_letter_landing(self, x, m, sd):
+        if sd == 0:
+            return 1.0 if x == m else 0.0
+
         q = math.sqrt(2 * math.pi) * sd
-        ch = (x - m) ** 2
+        ch = abs(x - m) ** 2
         zn = 2 * (sd * sd)
-        prob = 1 / q * math.exp(-ch / zn)
+        prob = (1 / q) * math.exp(-ch / zn)
         return prob
 
     def calculate_probability_landing(self, target_word, rest_letters, k):
         d = self.calculate_launch_distance(target_word, rest_letters)
         m = self.calculate_average_landing_position(target_word, d, k)
         sd = abs(self.calculate_standard_deviation(d, target_word))
-        print(d, m, sd)
+
         word_length = len(target_word)
         center_pos = word_length / 2
-        m_position = center_pos + m
+        m_position = max(0, center_pos + m)
+
         word_dict_probability = {}
-        # print(f"For word <{target_word}> m position = {m_position}")
+
         for index, letter in enumerate(target_word):
             x = m_position - index
-            # print(f"For letter {letter} in word <{target_word}> x = {round(x, 3)}")
             landing_prob = self.calculate_probability_letter_landing(x, m, sd)
-            # print(f"For letter {letter} in word <{target_word}> probability = {round(landing_prob, 3)}")
             word_dict_probability[index] = landing_prob
 
         x = m_position - word_length
-        prob = self.calculate_probability_letter_landing(x, m, sd)
-        word_dict_probability[word_length] = prob
-        # print(f"After word first symbol has probability : {round(prob, 3)}")
-
-        x = m_position - word_length - 1
-        prob = self.calculate_probability_letter_landing(x, m, sd)
-        word_dict_probability[word_length + 1] = prob
-        # print(f"After word second symbol has probability : {round(prob, 3)}")
+        skip_prob = self.calculate_probability_letter_landing(x, m, sd)
+        word_dict_probability[word_length] = skip_prob
 
         return word_dict_probability
 
@@ -207,22 +219,28 @@ class Model:
 
     def calculate_lex_ident_general(self, word, biggest_freq, frequency_word):
         base5 = 150
-        frequency_word /= biggest_freq
+        new_frequency_word = frequency_word / biggest_freq
         word_length = len(word)
-        m_ = base5 + 15 * (word_length - 5) + 40 * (1 - frequency_word)
+        m_ = base5 + 15 * (word_length - 5) + 40 * (1 - new_frequency_word)
         return m_
 
     def calculate_lex_ident_letter(self, word, loc, most_freq_word, frequency_word):
-        range = 100
-        m_ = self.calculate_lex_ident_general(word, most_freq_word, frequency_word)
 
         word_length = len(word)
         middle = word_length / 2
-        m = m_ + range / (word_length / 2) * abs(loc - middle)
+
+        if len(word) < 3:
+            offset = 0.25
+        else:
+            offset = abs(loc - middle)
+
+        range = 100
+        m_ = self.calculate_lex_ident_general(word, most_freq_word, frequency_word)
+
+        m = m_ + (range / (word_length / 2)) * offset
 
         if m < 80:
             m = 80
-
         return m
 
     def calculate_final_pos_fixation(self, dict_probability):

@@ -1,3 +1,5 @@
+import copy
+import random
 import re
 
 from FontsManager import FontsManager
@@ -7,13 +9,12 @@ import os.path
 import requests
 from PyQt5.QtCore import pyqtSignal, pyqtSlot, QThread
 import time
-from utils import FrequencyDictionary
 
 
 class Worker(QThread):
-    def __init__(self):
+    def __init__(self, freq_dictionary):
         super().__init__()
-        self.freq_dict = FrequencyDictionary()
+        self.freq_dict = freq_dictionary
         self.fontsManager = FontsManager()
         self.freq_dict.start()
         self.model = Model()
@@ -30,11 +31,28 @@ class Worker(QThread):
         self.model.reset_results()
 
     def receive_data_from_ui(self, data):
-        if data["width_px"] and data["height_px"] and data["distance_cm"] and data["diagonal_inches"]:
+
+        try:
             self.model.set_width_px(int(data["width_px"]))
+        except (ValueError, TypeError):
+            pass
+
+        try:
             self.model.set_height_px(int(data["height_px"]))
-            self.model.set_distance_to_display(float(data["distance_cm"]))
-            self.model.set_diagonal_inches(float(data["diagonal_inches"]))
+        except (ValueError, TypeError):
+            pass
+
+        try:
+            self.model.set_distance_to_display(int(data["distance_cm"]))
+        except (ValueError, TypeError):
+            pass
+
+        try:
+            self.model.set_diagonal_inches(int(data["diagonal_inches"]))
+        except (ValueError, TypeError):
+            pass
+
+        self.model.set_visible_width()
 
     def update_url(self, path):
         self.model.set_path(path)
@@ -47,8 +65,6 @@ class Worker(QThread):
 
         self.reset_results()
 
-        print("Starting data processing...")
-
         path = self.model.path
 
         if path == "":
@@ -59,8 +75,8 @@ class Worker(QThread):
             self.data_signal.emit("Warning", "Website or file not found!")
             return
 
-        if (self.model.height_px <= 0 and self.model.width_px <= 0 and self.model.distance_to_display <= 0
-                and self.model.PPI <= 0 and self.model.diagonal_inches <= 0):
+        if (self.model.height_px <= 0 or self.model.width_px <= 0 or self.model.distance_to_display <= 0
+                or self.model.diagonal_inches <= 0):
             self.data_signal.emit("Error", "Please fill in all fields!")
             return
 
@@ -70,11 +86,8 @@ class Worker(QThread):
 
         self.progress_signal.emit("Loading frequency dictionary...")
 
-        time.sleep(3)
-
-        if not self.freq_dict.sheet:
-            self.progress_signal.emit("Frequency dictionary not found!")
-            return
+        while not self.freq_dict.sheet:
+            time.sleep(2)
 
         if "html" in path or "htm" in path and "http" not in path and "https" not in path:
             if url_is_correct(path) is not False:
@@ -121,6 +134,18 @@ class Worker(QThread):
                 return True
         return False
 
+    def word_is_number(self, word):
+        for char in word.text_span:
+            if not char.isdigit():
+                return False
+        return True
+
+    def long_word_contain_digit(self, word):
+        for char in word:
+            if char.isdigit():
+                return True
+        return False
+
     def clean_word(self, word):
         word.text_span.replace("’’", "'")
         word.text_span.replace("`", "'")
@@ -132,51 +157,8 @@ class Worker(QThread):
         re.sub(r'[,!?;:]+$', '', word.text_span)
         return word
 
-    def process_long_word(self, word, cleaned_word, size_step, last_word):
-
-        start_index = last_word["index"]
-
-        if not last_word["same"]:
-            start_index = 0
-
-        if last_word["rest"] >= 10:
-            last_word["rest"] = 10
-
-        max_index = size_step + start_index
-
-        if len(cleaned_word) < size_step + start_index:
-            max_index = len(cleaned_word)
-            last_word["read"] = True
-            last_word["same"] = False
-            last_word["rest"] = 0
-            last_word["skip"] = True
-            last_word["index"] = 0
-
-        text = cleaned_word[start_index: max_index]
-        index_landing = self.calculate_index_landing(text, last_word["rest"], 1)
-
-        print("Start index: ", start_index, "End index: ", max_index)
-
-        self.progress_signal.emit(f"Calculating index of the word: <{word}>")
-
-        if index_landing + start_index >= len(cleaned_word):
-            index_landing = len(cleaned_word) - start_index - 1
-
-        last_word["index"] = last_word["index"] + index_landing
-
-        print(last_word)
-
-        self.show_fixation_on_long_word(word, index_landing + start_index)
-        self.progress_signal.emit("\n")
-        return last_word
-
-    def process_short_word(self):
-        pass
-
-    def word_time_reading(self, word, biggest_value_freq):
-
+    def word_time_reading(self, word, biggest_value_freq, index_landing, show_freq_or_not):
         time_estimated_per_str = 0
-        time_to_read_sd = 0
 
         if self.word_contain_digit(word) or any(char in word.text_span for char in
                                                 "-'’`.") or word.text_span.lower() in self.freq_dict.abbreviations:
@@ -190,7 +172,6 @@ class Worker(QThread):
                 self.progress_signal.emit(f"Frequency of word: <etc> per million: {int(freq)}")
                 time_per_segment = self.model.calculate_time_reading("etc", len("etc") / 2, biggest_value_freq,
                                                                      freq)
-                time_to_read_sd += self.model.calculate_sd(time_per_segment)
                 time_estimated_per_str += time_per_segment
 
             elif word_cleaned in self.freq_dict.abbreviations:
@@ -202,10 +183,11 @@ class Worker(QThread):
                     freq = self.freq_dict.find_freq_for_word(self.freq_dict.sheet, self.freq_dict.column,
                                                              segment_lower)
 
-                    self.progress_signal.emit(f"Frequency of word: <{segment}> per million: {int(freq)}")
-                    time_per_segment = self.model.calculate_time_reading(segment_lower, len(segment) / 2,
+                    if show_freq_or_not:
+                        self.progress_signal.emit(f"Frequency of word: <{segment}> per million: {int(freq)}")
+                    time_per_segment = self.model.calculate_time_reading(segment_lower,
+                                                                         random.randint(0, len(segment) // 2),
                                                                          biggest_value_freq, freq)
-                    time_to_read_sd += self.model.calculate_sd(time_per_segment)
                     time_estimated_per_str += time_per_segment
             else:
                 # Check if it's a number and convert to words
@@ -218,99 +200,374 @@ class Worker(QThread):
                     segment_lower = segment.lower()
                     freq = self.freq_dict.find_freq_for_word(self.freq_dict.sheet, self.freq_dict.column,
                                                              segment_lower)
-                    time_per_segment = self.model.calculate_time_reading(segment_lower, len(segment) / 2,
+                    time_per_segment = self.model.calculate_time_reading(segment_lower,
+                                                                         random.randint(0, len(segment) // 2),
                                                                          biggest_value_freq, freq)
-                    self.progress_signal.emit(f"Frequency of word: <{segment}> per million: {int(freq)}")
-                    time_to_read_sd += self.model.calculate_sd(time_per_segment)
+                    if show_freq_or_not:
+                        self.progress_signal.emit(f"Frequency of word: <{segment}> per million: {int(freq)}")
                     time_estimated_per_str += time_per_segment
 
             self.progress_signal.emit(f"Pronounced: {parsed_word}")
             self.progress_signal.emit(
-                f"Time required for reading text <{word.text_span}> = {int(time_estimated_per_str)} ms"
+                f"Time required for reading complex text <{word.text_span}> = {int(time_estimated_per_str)} ms"
             )
         else:
             word_original = word.text_span
             word_lower = word.text_span.lower()
             freq = self.freq_dict.find_freq_for_word(self.freq_dict.sheet, self.freq_dict.column, word_lower)
-            self.progress_signal.emit(f"Frequency of word <{word_original}> per million: {int(freq)}")
-            time_for_word = int(
-                self.model.calculate_time_reading(word_lower, int(len(word_lower) / 4), biggest_value_freq, freq)
-            )
+            if show_freq_or_not:
+                self.progress_signal.emit(f"Frequency of word <{word_original}> per million: {int(freq)}")
+            if index_landing == 0:
+                time_for_word = int(
+                    self.model.calculate_time_reading(word_lower, 0, biggest_value_freq, freq)
+                )
+            else:
+                time_for_word = int(
+                    self.model.calculate_time_reading(word_lower, index_landing+1, biggest_value_freq, freq)
+                )
             time_estimated_per_str += time_for_word
-            self.progress_signal.emit(
-                f"Time required for reading word <{word_original}> = {int(time_estimated_per_str)} ms"
-            )
-            time_to_read_sd += self.model.calculate_sd(time_for_word)
 
         time_to_read_sd = self.model.calculate_sd(time_estimated_per_str)
         self.model.increase_general_time(time_estimated_per_str)
         self.model.increase_general_time_sd(time_to_read_sd)
 
-        self.progress_signal.emit("Performing saccade...\n")
+        return time_estimated_per_str
 
-        if word.distance_to_next_span > 0:
-            time_saccade = self.model.calculate_time_saccade(word.distance_to_next_span)
-            self.progress_signal.emit(f"Moving to the next block... Time required {int(time_saccade)} ms\n")
-            self.model.increase_general_time(time_saccade)
+    def font_cf_handler(self, word):
+        word.size = int(word.size)
+
+        found, word.font_span = self.format_font_name(word.font_span)
+
+        if not found:
+            self.progress_signal.emit("Font Name not found! Times New Roman will be used")
+            if word.size:
+                self.progress_signal.emit(f"Font size found: {word.size}")
+        else:
+            self.progress_signal.emit(f"Font properties: {word.font_span}, {int(word.size)}")
+
+        if 13.5 < word.size < 14.5:
+            word.size = 14
+
+        coefficient = self.fontsManager.get_coefficient_font_letter(word.font_span, word.size, self.model.PPI)
+
+        coefficient = round(coefficient, 1)
+
+        if coefficient > 1:
+            self.progress_signal.emit(f"The font size is smaller than standard by a factor of {coefficient:.2f}x")
+        elif coefficient == 1:
+            self.progress_signal.emit(f"The identified font size is standard.")
+        else:
+            self.progress_signal.emit(f"The font size is larger than standard by a factor of {(1 / coefficient):.2f}x")
+
+        return coefficient
+
+    def make_init_saccade(self):
+        distance = self.model.parserPDF.get_distance_to_first_span()
+
+        if distance > 0:
+            time_saccade = self.model.calculate_time_saccade(distance)
+            self.progress_signal.emit(f"Moving to the first block... Time required {int(time_saccade)} ms\n")
+            self.model.increase_general_time(int(time_saccade))
 
     def start_analyze(self):
 
         most_frequency_value = self.freq_dict.get_biggest_frequency()
 
-        size_step = 15
+        default_size_step = 15 * self.model.calculate_distance_cf()
+        self.progress_signal.emit(
+            "Standard shift to the right: 14-15 letters for 14 points Times New Roman (distance: 55 cm).")
+        self.progress_signal.emit(
+            f"Calculated shift to the right: {int(default_size_step)} letters for 14 points Times New Roman (distance: {int(self.model.distance_to_display)}cm).\n"
+        )
 
         last_word = {
-            "skip": False,
-            "same": False,
-            "read": False,
             "rest": 0,
             "index": 0,
+            "time": 0,
+            "state": None
         }
 
-        for word in self.words_spans:
+        self.make_init_saccade()
 
-            if re.match(r'^[.,!?;:]+$', word.text_span):
+        saccade_is_extended = False
+
+        for i in range(len(self.words_spans)):
+            word = self.words_spans[i]
+
+            if re.match(r'^[.,!?\-;:]+$', word.text_span):
                 continue
 
-            cleaned_word = self.clean_word(word)
+            if saccade_is_extended is True:
+                saccade_is_extended = False
+                self.progress_signal.emit(f"Next word <{word.text_span}> was skipped due early word identification.\n")
+                continue
 
-            if word.long:
+            cleaned_word = self.clean_word(copy.deepcopy(word))
+            self.progress_signal.emit(f"Next word: {word.text_span}")
 
-                last_word["same"] = False
-                last_word["read"] = False
+            cf = self.font_cf_handler(word)
 
-                while last_word["read"] is False:
+            last_word = self.read(word, cleaned_word, last_word, cf, default_size_step, most_frequency_value)
 
-                    print("Current word :", word.text_span)
-                    last_word = self.process_long_word(word.text_span, cleaned_word.text_span, size_step, last_word)
-                    last_word["same"] = True
+            word_time = 0
+
+            if last_word["state"] != "skip":
+                if last_word["time"] != 0:
+                    word_time = last_word["time"]
+                    last_word["time"] = 0
+                else:
+                    word_time += self.word_time_reading(cleaned_word, most_frequency_value, last_word["index"], True)
 
             else:
+                continue
 
-                self.process_short_word()
+            self.progress_signal.emit(
+                f"Total time required for reading word : {word.text_span} = {int(word_time)} ms")
 
-            self.word_time_reading(cleaned_word, most_frequency_value)
+            if i + 1 < len(self.words_spans):
+                self.progress_signal.emit("Programming a saccade...")
+                latency = self.latency_before_saccade()
 
-        self.progress_signal.emit("Analysis completed.\n")
+                next_word = self.words_spans[i + 1]
+
+                if len(next_word.text_span) < 4:
+                    quick_time = int(self.get_quick_check_time_word(next_word, most_frequency_value))
+
+                    if latency + 25 >= quick_time and i + 2 < len(self.words_spans) and not next_word.text_span.isdigit():
+                        self.progress_signal.emit("Saccade to word n+1 was canceled due to early word identification.")
+                        self.progress_signal.emit("New saccade programmed to word n+2.")
+
+                        saccade_is_extended = True
+
+                        next_next_word = self.words_spans[i + 2]
+                        distance_cm = self.model.parserPDF.calculate_distance(
+                            word.get_coords(),
+                            next_next_word.get_coords()
+                        )
+                        time_saccade = self.model.calculate_time_saccade(distance_cm) * 2
+                        self.progress_signal.emit("\nPerforming saccade...")
+                        self.progress_signal.emit(f"Moving to the next word. Time required {int(time_saccade)} ms\n")
+                        self.model.increase_general_time(time_saccade)
+
+                    elif latency < quick_time:
+                        saccade_is_extended = False
+                        self.performing_saccade(word)
+
+                    else:
+                        time_saccade = self.model.calculate_time_saccade(word.distance_to_next_span)
+                        self.progress_signal.emit("\nPerforming saccade...")
+                        self.progress_signal.emit(f"Moving to the next word. Time required {int(time_saccade)} ms\n")
+                        self.model.increase_general_time(time_saccade)
+
+                else:
+                    time_saccade = self.model.calculate_time_saccade(word.distance_to_next_span)
+                    self.progress_signal.emit("\nPerforming saccade...")
+                    self.progress_signal.emit(f"Moving to the next word. Time required {int(time_saccade)} ms\n")
+                    self.model.increase_general_time(time_saccade)
+
+        self.show_final_results()
+
+    def read(self, word, cleaned_word, last_word, coefficient, default_size_step, most_frequency_value):
+
+        if self.word_is_number(word):
+            last_word["index"] = 0
+            last_word["rest"] = 1
+            last_word["state"] = "read"
+            return last_word
+
+        default_size_step += 1
+        if default_size_step < 2:
+            default_size_step = 2
+
+        if not word.text_span or not cleaned_word.text_span:
+            last_word["state"] = "skip"
+            last_word["rest"] = 0
+            last_word["index"] = 0
+            return last_word
+
+        # -------- short word that can be overflown ----------
+        if len(word.text_span) < 4:
+            if last_word["state"] == "skip":
+                last_word["index"] = 0
+                last_word["rest"] = len(word.text_span) - 1
+                last_word["state"] = "read"
+                self.show_fixation_in_word(0, word.text_span)
+                return last_word
+            else:
+                dict_probability = self.model.calculate_probability_landing(
+                    cleaned_word.text_span, last_word["rest"], coefficient
+                )
+                index_chose = self.model.calculate_final_pos_fixation(dict_probability)
+                index_chose = min(index_chose, len(word.text_span))
+                index_chose = max(index_chose, 0)
+
+                try:
+                    result = self.get_and_show_rest_of_word(index_chose, word.text_span)
+                except IndexError:
+                    last_word["state"] = "skip"
+                    last_word["rest"] = 0
+                    last_word["index"] = 0
+                    return last_word
+
+                last_word["index"] = index_chose
+                if result == -1:
+                    last_word["state"] = "skip"
+                    last_word["rest"] = 0
+                else:
+                    last_word["state"] = "read"
+                    last_word["rest"] = result
+                return last_word
+
+        # -------- regular word that longer 3 symbols ----------
+        else:
+            if coefficient * default_size_step >= len(word.text_span):
+                if last_word["state"] == "skip":
+                    index_landing = 0
+                else:
+                    min_index = 0
+                    max_index = len(word.text_span) - 1
+                    index_landing = self.calculate_index_landing(
+                        word.text_span[min_index:max_index],
+                        last_word["rest"],
+                        coefficient
+                    )
+                    index_landing = min(index_landing, 5)
+
+                self.get_and_show_rest_of_word(index_landing, word.text_span)
+                last_word["index"] = index_landing
+                last_word["state"] = "read"
+                last_word["rest"] = len(word.text_span) - 1 - index_landing
+                return last_word
+
+            # -------- if we need a few fixations to read a word -------
+            else:
+                word_not_read = True
+                min_index = 0
+                visible_zone = max(2, int(coefficient * default_size_step))
+                total_reading_time = 0
+                previous_global_index = -1
+                first_fixation = True
+                fixation_count = 0
+
+                while word_not_read:
+                    max_index = min(min_index + visible_zone, len(word.text_span))
+
+                    index_landing = self.calculate_index_landing(
+                        word.text_span[min_index:max_index],
+                        last_word["rest"],
+                        coefficient
+                    )
+
+                    local_index = min(index_landing, max_index - min_index - 1)
+                    global_index = min_index + local_index
+
+                    if first_fixation and global_index > 2:
+                        global_index = 2
+                    first_fixation = False
+
+                    if global_index == previous_global_index:
+                        break
+
+                    previous_global_index = global_index
+                    last_word["index"] = global_index
+                    fixation_count += 1
+
+                    is_single_fixation = (fixation_count == 1 and max_index >= len(word.text_span))
+
+                    total_reading_time += self.word_time_reading(
+                        cleaned_word, most_frequency_value, global_index, is_single_fixation
+                    )
+
+                    self.get_and_show_rest_of_word(global_index, word.text_span)
+
+                    rest = len(word.text_span) - (global_index + 1)
+                    last_word["rest"] = max(0, rest)
+
+                    if rest <= 0:
+                        word_not_read = False
+                    else:
+                        min_index = global_index + 1
+                        self.make_short_saccade(word)
+
+                last_word["time"] = total_reading_time
+                last_word["state"] = "read"
+                return last_word
+
+    def make_short_saccade(self, word):
+        self.progress_signal.emit("Performing saccade...")
+        w, h = self.fontsManager.get_size_letter_into_cm('a', word.font_span, int(word.size), 100)
+        time_saccade = self.model.calculate_time_saccade(w * len(word.text_span) / 2)
+        self.progress_signal.emit(f"Moving to the next part of word. Time required {int(time_saccade)} ms")
+        self.model.increase_general_time(time_saccade)
+
+    def get_and_show_rest_of_word(self, index_landing, word):
+        if index_landing < len(word):
+            self.progress_signal.emit(
+                f"Fixation in word <{word}> on character '{word[index_landing]}' at index {index_landing + 1}.")
+            self.refixation_check(word, index_landing)
+            return len(word) - index_landing
+        else:
+            self.progress_signal.emit(f"Word was skipped! Landing on the next character!\n")
+            return -1
+
+    def show_fixation_in_word(self, index_landing, word):
+        if index_landing < len(word):
+            self.progress_signal.emit(
+                f"Fixation in word <{word}> on character '{word[index_landing]}' at index {index_landing + 1}.")
+            self.refixation_check(word, index_landing)
+        else:
+            self.progress_signal.emit(
+                f"Fixation in word <{word}> on character '{word[index_landing]}' at index {index_landing}.")
+            self.refixation_check(word, index_landing)
+
+    def latency_before_saccade(self):
+        time_latency = self.model.calculate_average_latency_time()
+        if time_latency < 50:
+            time_latency = 50
+        self.progress_signal.emit(f"Saccade delay calculated: {int(time_latency)} ms")
+        self.model.increase_general_time(int(time_latency))
+        self.model.increase_general_time_sd(self.model.calculate_sd(self.model.standard_deviation_latency))
+        return int(time_latency)
+
+    def get_quick_check_time_word(self, word, biggest_value_freq):
+        word_lower = word.text_span.lower()
+        freq = self.freq_dict.find_freq_for_word(self.freq_dict.sheet, self.freq_dict.column, word_lower)
+        time_for_word = int(
+            self.model.calculate_time_reading(word_lower, random.randint(0, len(word_lower) // 2), biggest_value_freq,
+                                              freq))
+        return time_for_word
+
+    def performing_saccade(self, prev_word):
+
+        self.progress_signal.emit("\nPerforming saccade...")
+
+        if prev_word.distance_to_next_span > 0:
+            time_saccade = self.model.calculate_time_saccade(prev_word.distance_to_next_span)
+            self.progress_signal.emit(f"Moving to the next word. Time required {int(time_saccade)} ms\n")
+            self.model.increase_general_time(time_saccade)
+
+    def show_final_results(self):
+        self.progress_signal.emit("\nAnalysis completed.\n")
+        final_result = self.get_time_to_read(self.model.get_sum_time_reading(), self.model.get_sum_standard_deviation())
+        self.final_result.emit(final_result)
+        self.reset_results()
 
     def calculate_index_landing(self, partial_word, rest_letters, coefficient):
         dict_probability = self.model.calculate_probability_landing(partial_word, rest_letters, coefficient)
         return round(self.model.calculate_final_pos_fixation(dict_probability))
 
-    def obtain_rest_on_short_word(self, index_landing, short_word):
-        if index_landing < len(short_word):
-            self.progress_signal.emit(
-                f"Fixation in word <{short_word}> on character '{short_word[index_landing]}' at index {index_landing}.")
-            return len(short_word) - (index_landing + 1)
-        elif index_landing == len(short_word):
-            self.progress_signal.emit(f"Word was skipped! Landing on the next character!\n")
-            return 0
+    def refixation_check(self, word, index_chose):
+        prob_refix = self.model.calculate_probability_refixation(word, index_chose)
+        self.progress_signal.emit(f"Probability of refixation = {round(prob_refix, 3)}")
+        if self.model.should_refixate(prob_refix):
+            self.progress_signal.emit("------------------Refixation required------------------")
+            time_refix = self.model.make_refixation(word, index_chose + 1)
+            self.progress_signal.emit(f"Refixation delay time = {int(time_refix)} ms")
+            time_refix_sd = self.model.calculate_sd(time_refix)
+            self.model.increase_general_time(time_refix)
+            self.model.increase_general_time_sd(time_refix_sd)
         else:
-            self.progress_signal.emit(f"Word was skipped! Landing on 2 symbols after the word!\n")
-            return 0
-
-    def show_fixation_on_long_word(self, word, index):
-        self.progress_signal.emit(f"Fixation in word <{word}> on character '{word[index]}' at index {index}.")
+            self.progress_signal.emit("Refixation not required...")
 
     def get_time_to_read(self, time: float, sd_time: float) -> str:
         min = int(time // 60000)
@@ -345,5 +602,4 @@ def url_is_correct(path):
         else:
             return False
     except requests.exceptions.RequestException as e:
-        print(f"Error while checking the URL: {e}")
         return False

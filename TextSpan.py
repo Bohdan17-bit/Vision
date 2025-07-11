@@ -40,3 +40,6 @@ class TextSpanPDF:
         self.coord_x_end = x1
         self.coord_y_start = y0
         self.coord_y_end = y1
+
+    def get_coords(self):
+        return self.coord_x_start, self.coord_x_end, self.coord_y_start, self.coord_y_end

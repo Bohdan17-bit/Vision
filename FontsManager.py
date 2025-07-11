@@ -53,6 +53,7 @@ class FontsManager:
 
     def get_coefficient_font_letter(self, font_name, font_size, new_dpi):
         try:
+            new_dpi = int(new_dpi)
             standard_times_14 = self.json_handler.find_combination_font("Times New Roman", 14, 100)
 
             standard_w = standard_times_14["size_width"]
@@ -98,7 +99,6 @@ class FontsManager:
     def get_average_size_letters_font_and_size(self, new_font, new_size, new_dpi):
         total_w_cm = 0
         total_h_cm = 0
-        logging.info(f"Calculating average letter size for font: {new_font}, Size: {new_size}, DPI: {new_dpi}")
         for letter in self.alphabet:
             try:
                 w_letter, h_letter = self.get_size_letter_into_cm(letter, new_font, new_size, new_dpi)
@@ -108,7 +108,6 @@ class FontsManager:
                 logging.error(f"Error calculating size for letter '{letter}': {e}")
         average_w_letter = total_w_cm / len(self.alphabet)
         average_h_letter = total_h_cm / len(self.alphabet)
-        logging.debug(f"Average letter size: Width={average_w_letter}, Height={average_h_letter}")
         return average_w_letter, average_h_letter
 
     def get_size_letter_into_cm(self, letter, font, size, dpi):
