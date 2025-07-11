@@ -150,12 +150,12 @@ class Model:
 
     def calculate_probability_letter_landing(self, x, m, sd):
         if sd == 0:
-            return 1.0 if x == m else 0.0  # Уникнення ділення на 0
+            return 1.0 if x == m else 0.0
 
         q = math.sqrt(2 * math.pi) * sd
         ch = abs(x - m) ** 2
         zn = 2 * (sd * sd)
-        prob = (1 / q) * math.exp(-ch / zn)  # Правильний порядок обчислень
+        prob = (1 / q) * math.exp(-ch / zn)
         return prob
 
     def calculate_probability_landing(self, target_word, rest_letters, k):
@@ -165,7 +165,7 @@ class Model:
 
         word_length = len(target_word)
         center_pos = word_length / 2
-        m_position = max(0, center_pos + m)  # Гарантуємо, що не вилізли за ліву межу
+        m_position = max(0, center_pos + m)
 
         word_dict_probability = {}
 
@@ -219,22 +219,28 @@ class Model:
 
     def calculate_lex_ident_general(self, word, biggest_freq, frequency_word):
         base5 = 150
-        frequency_word /= biggest_freq
+        new_frequency_word = frequency_word / biggest_freq
         word_length = len(word)
-        m_ = base5 + 15 * (word_length - 5) + 40 * (1 - frequency_word)
+        m_ = base5 + 15 * (word_length - 5) + 40 * (1 - new_frequency_word)
         return m_
 
     def calculate_lex_ident_letter(self, word, loc, most_freq_word, frequency_word):
-        range = 100
-        m_ = self.calculate_lex_ident_general(word, most_freq_word, frequency_word)
 
         word_length = len(word)
         middle = word_length / 2
-        m = m_ + range / (word_length / 2) * abs(loc - middle)
+
+        if len(word) < 3:
+            offset = 0.25
+        else:
+            offset = abs(loc - middle)
+
+        range = 100
+        m_ = self.calculate_lex_ident_general(word, most_freq_word, frequency_word)
+
+        m = m_ + (range / (word_length / 2)) * offset
 
         if m < 80:
             m = 80
-
         return m
 
     def calculate_final_pos_fixation(self, dict_probability):

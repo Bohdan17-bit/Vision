@@ -134,6 +134,12 @@ class Worker(QThread):
                 return True
         return False
 
+    def word_is_number(self, word):
+        for char in word.text_span:
+            if not char.isdigit():
+                return False
+        return True
+
     def long_word_contain_digit(self, word):
         for char in word:
             if char.isdigit():
@@ -151,7 +157,7 @@ class Worker(QThread):
         re.sub(r'[,!?;:]+$', '', word.text_span)
         return word
 
-    def word_time_reading(self, word, biggest_value_freq, index_landing):
+    def word_time_reading(self, word, biggest_value_freq, index_landing, show_freq_or_not):
         time_estimated_per_str = 0
 
         if self.word_contain_digit(word) or any(char in word.text_span for char in
@@ -177,7 +183,8 @@ class Worker(QThread):
                     freq = self.freq_dict.find_freq_for_word(self.freq_dict.sheet, self.freq_dict.column,
                                                              segment_lower)
 
-                    self.progress_signal.emit(f"Frequency of word: <{segment}> per million: {int(freq)}")
+                    if show_freq_or_not:
+                        self.progress_signal.emit(f"Frequency of word: <{segment}> per million: {int(freq)}")
                     time_per_segment = self.model.calculate_time_reading(segment_lower,
                                                                          random.randint(0, len(segment) // 2),
                                                                          biggest_value_freq, freq)
@@ -196,7 +203,8 @@ class Worker(QThread):
                     time_per_segment = self.model.calculate_time_reading(segment_lower,
                                                                          random.randint(0, len(segment) // 2),
                                                                          biggest_value_freq, freq)
-                    self.progress_signal.emit(f"Frequency of word: <{segment}> per million: {int(freq)}")
+                    if show_freq_or_not:
+                        self.progress_signal.emit(f"Frequency of word: <{segment}> per million: {int(freq)}")
                     time_estimated_per_str += time_per_segment
 
             self.progress_signal.emit(f"Pronounced: {parsed_word}")
@@ -207,15 +215,15 @@ class Worker(QThread):
             word_original = word.text_span
             word_lower = word.text_span.lower()
             freq = self.freq_dict.find_freq_for_word(self.freq_dict.sheet, self.freq_dict.column, word_lower)
-            self.progress_signal.emit(f"Frequency of word <{word_original}> per million: {int(freq)}")
+            if show_freq_or_not:
+                self.progress_signal.emit(f"Frequency of word <{word_original}> per million: {int(freq)}")
             if index_landing == 0:
                 time_for_word = int(
-                    self.model.calculate_time_reading(word_lower, random.randint(0, len(word_lower) // 2),
-                                                      biggest_value_freq, freq)
+                    self.model.calculate_time_reading(word_lower, 0, biggest_value_freq, freq)
                 )
             else:
                 time_for_word = int(
-                    self.model.calculate_time_reading(word_lower, index_landing, biggest_value_freq, freq)
+                    self.model.calculate_time_reading(word_lower, index_landing+1, biggest_value_freq, freq)
                 )
             time_estimated_per_str += time_for_word
 
@@ -286,7 +294,7 @@ class Worker(QThread):
         for i in range(len(self.words_spans)):
             word = self.words_spans[i]
 
-            if re.match(r'^[.,!-?;:]+$', word.text_span):
+            if re.match(r'^[.,!?\-;:]+$', word.text_span):
                 continue
 
             if saccade_is_extended is True:
@@ -308,7 +316,7 @@ class Worker(QThread):
                     word_time = last_word["time"]
                     last_word["time"] = 0
                 else:
-                    word_time += self.word_time_reading(word, most_frequency_value, last_word["index"])
+                    word_time += self.word_time_reading(cleaned_word, most_frequency_value, last_word["index"], True)
 
             else:
                 continue
@@ -322,10 +330,10 @@ class Worker(QThread):
 
                 next_word = self.words_spans[i + 1]
 
-                if len(next_word.text_span) < 5:
+                if len(next_word.text_span) < 4:
                     quick_time = int(self.get_quick_check_time_word(next_word, most_frequency_value))
 
-                    if latency + 25 >= quick_time and i + 2 < len(self.words_spans):
+                    if latency + 25 >= quick_time and i + 2 < len(self.words_spans) and not next_word.text_span.isdigit():
                         self.progress_signal.emit("Saccade to word n+1 was canceled due to early word identification.")
                         self.progress_signal.emit("New saccade programmed to word n+2.")
 
@@ -361,6 +369,13 @@ class Worker(QThread):
 
     def read(self, word, cleaned_word, last_word, coefficient, default_size_step, most_frequency_value):
 
+        if self.word_is_number(word):
+            last_word["index"] = 0
+            last_word["rest"] = 1
+            last_word["state"] = "read"
+            return last_word
+
+        default_size_step += 1
         if default_size_step < 2:
             default_size_step = 2
 
@@ -370,21 +385,19 @@ class Worker(QThread):
             last_word["index"] = 0
             return last_word
 
-        #---------short word that available to overflight -----------
+        # -------- short word that can be overflown ----------
         if len(word.text_span) < 4:
-            #-------if last word was skipped, fixation on first symbol --------------
             if last_word["state"] == "skip":
                 last_word["index"] = 0
                 last_word["rest"] = len(word.text_span) - 1
                 last_word["state"] = "read"
                 self.show_fixation_in_word(0, word.text_span)
                 return last_word
-
-            #-------if last word was read regularly, calculating index landing -----------
             else:
-                dict_probability = self.model.calculate_probability_landing(cleaned_word.text_span, last_word["rest"], coefficient)
+                dict_probability = self.model.calculate_probability_landing(
+                    cleaned_word.text_span, last_word["rest"], coefficient
+                )
                 index_chose = self.model.calculate_final_pos_fixation(dict_probability)
-
                 index_chose = min(index_chose, len(word.text_span))
                 index_chose = max(index_chose, 0)
 
@@ -397,22 +410,17 @@ class Worker(QThread):
                     return last_word
 
                 last_word["index"] = index_chose
-
-                #-------if word was skipped by overflight saccade--------------
                 if result == -1:
                     last_word["state"] = "skip"
                     last_word["rest"] = 0
-                #------if word wasn't overflight-------------------
                 else:
                     last_word["state"] = "read"
                     last_word["rest"] = result
-
                 return last_word
 
+        # -------- regular word that longer 3 symbols ----------
         else:
-            # --------- regular word that can't be overflight -------------
-            # -------- if we can read it with one fixation ----------------
-            if coefficient * default_size_step > len(word.text_span) and last_word["rest"] == 0:
+            if coefficient * default_size_step >= len(word.text_span):
                 if last_word["state"] == "skip":
                     index_landing = 0
                 else:
@@ -423,56 +431,62 @@ class Worker(QThread):
                         last_word["rest"],
                         coefficient
                     )
-                    if index_landing > 5:
-                        index_landing = 5
+                    index_landing = min(index_landing, 5)
+
                 self.get_and_show_rest_of_word(index_landing, word.text_span)
                 last_word["index"] = index_landing
                 last_word["state"] = "read"
                 last_word["rest"] = len(word.text_span) - 1 - index_landing
                 return last_word
 
-            # -------- if we need a few fixations to read a word --------
+            # -------- if we need a few fixations to read a word -------
             else:
                 word_not_read = True
                 min_index = 0
                 visible_zone = max(2, int(coefficient * default_size_step))
                 total_reading_time = 0
+                previous_global_index = -1
+                first_fixation = True
+                fixation_count = 0
+
                 while word_not_read:
-                    max_index_limit = max(len(word.text_span) - 2, min_index)
-                    max_index = min(min_index + visible_zone, max_index_limit)
+                    max_index = min(min_index + visible_zone, len(word.text_span))
 
-                    if max_index <= min_index:
-                        global_index = len(word.text_span) - 2
-                        word_not_read = False
-                    else:
-                        index_landing = self.calculate_index_landing(
-                            word.text_span[min_index:max_index],
-                            last_word["rest"],
-                            coefficient
-                        )
-                        global_index = index_landing + min_index
+                    index_landing = self.calculate_index_landing(
+                        word.text_span[min_index:max_index],
+                        last_word["rest"],
+                        coefficient
+                    )
 
-                        global_index = min(global_index, len(word.text_span) - 2)
+                    local_index = min(index_landing, max_index - min_index - 1)
+                    global_index = min_index + local_index
 
-                        if min_index == 0 and global_index > 2:
-                            global_index = 2
+                    if first_fixation and global_index > 2:
+                        global_index = 2
+                    first_fixation = False
 
-                        if global_index <= last_word["index"]:
-                            word_not_read = False
+                    if global_index == previous_global_index:
+                        break
 
+                    previous_global_index = global_index
                     last_word["index"] = global_index
-                    total_reading_time += self.word_time_reading(word, most_frequency_value, global_index)
+                    fixation_count += 1
+
+                    is_single_fixation = (fixation_count == 1 and max_index >= len(word.text_span))
+
+                    total_reading_time += self.word_time_reading(
+                        cleaned_word, most_frequency_value, global_index, is_single_fixation
+                    )
+
                     self.get_and_show_rest_of_word(global_index, word.text_span)
 
-                    rest = len(word.text_span) - (global_index + visible_zone)
+                    rest = len(word.text_span) - (global_index + 1)
                     last_word["rest"] = max(0, rest)
 
                     if rest <= 0:
                         word_not_read = False
                     else:
                         min_index = global_index + 1
-
-                    if word_not_read:
                         self.make_short_saccade(word)
 
                 last_word["time"] = total_reading_time
