@@ -227,12 +227,9 @@ class Model:
     def calculate_lex_ident_letter(self, word, loc, most_freq_word, frequency_word):
 
         word_length = len(word)
-        middle = word_length / 2
+        middle = int(word_length / 2)
 
-        if len(word) < 3:
-            offset = 0.25
-        else:
-            offset = abs(loc - middle)
+        offset = abs(loc - middle)
 
         range = 100
         m_ = self.calculate_lex_ident_general(word, most_freq_word, frequency_word)

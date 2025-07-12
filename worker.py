@@ -75,6 +75,10 @@ class Worker(QThread):
             self.data_signal.emit("Warning", "Website or file not found!")
             return
 
+        if url_is_correct(path) == "blocked":
+            self.data_signal.emit("Warning", "Program detected as a Bot, Access denied!")
+            return
+
         if (self.model.height_px <= 0 or self.model.width_px <= 0 or self.model.distance_to_display <= 0
                 or self.model.diagonal_inches <= 0):
             self.data_signal.emit("Error", "Please fill in all fields!")
@@ -460,6 +464,7 @@ class Worker(QThread):
 
                     local_index = min(index_landing, max_index - min_index - 1)
                     global_index = min_index + local_index
+                    global_index = min(global_index, len(word.text_span) - 1)
 
                     if first_fixation and global_index > 2:
                         global_index = 2
@@ -468,15 +473,22 @@ class Worker(QThread):
                     if global_index == previous_global_index:
                         break
 
+                    # === Розрахунок зміщення та сакади ===
+                    if previous_global_index != -1:
+                        shift_letters = global_index - previous_global_index
+                        if shift_letters > 0:
+                            time_saccade = self.make_short_saccade(word, shift_letters)
+                            total_reading_time += time_saccade
+
                     previous_global_index = global_index
                     last_word["index"] = global_index
                     fixation_count += 1
 
                     is_single_fixation = (fixation_count == 1 and max_index >= len(word.text_span))
-
-                    total_reading_time += self.word_time_reading(
+                    fixation_time = self.word_time_reading(
                         cleaned_word, most_frequency_value, global_index, is_single_fixation
                     )
+                    total_reading_time += fixation_time
 
                     self.get_and_show_rest_of_word(global_index, word.text_span)
 
@@ -487,18 +499,22 @@ class Worker(QThread):
                         word_not_read = False
                     else:
                         min_index = global_index + 1
-                        self.make_short_saccade(word)
 
                 last_word["time"] = total_reading_time
                 last_word["state"] = "read"
+                freq = self.freq_dict.find_freq_for_word(self.freq_dict.sheet, self.freq_dict.column, word.text_span.lower())
+                self.progress_signal.emit(f"Frequency of word <{word.text_span}> per million: {int(freq)}")
+
                 return last_word
 
-    def make_short_saccade(self, word):
+    def make_short_saccade(self, word, shift_letters):
         self.progress_signal.emit("Performing saccade...")
-        w, h = self.fontsManager.get_size_letter_into_cm('a', word.font_span, int(word.size), 100)
-        time_saccade = self.model.calculate_time_saccade(w * len(word.text_span) / 2)
+        w, h = self.fontsManager.get_size_letter_into_cm('D', word.font_span, int(word.size), 100)
+        distance_cm = w * shift_letters
+        time_saccade = self.model.calculate_time_saccade(distance_cm)
         self.progress_signal.emit(f"Moving to the next part of word. Time required {int(time_saccade)} ms")
         self.model.increase_general_time(time_saccade)
+        return time_saccade
 
     def get_and_show_rest_of_word(self, index_landing, word):
         if index_landing < len(word):
@@ -593,13 +609,19 @@ class Worker(QThread):
 
 
 def url_is_correct(path):
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
+    }
     if os.path.exists(path):
         return "file"
     try:
-        response = requests.head(path)
+        response = requests.get(path, headers=headers, stream=True, timeout=5)
         if response.status_code == 200:
             return "site"
+        elif response.status_code == 403:
+            return "blocked"
         else:
             return False
-    except requests.exceptions.RequestException as e:
-        return False
+    except requests.exceptions.RequestException:
+        pass
+    return False

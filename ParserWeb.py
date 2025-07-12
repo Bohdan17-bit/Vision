@@ -6,6 +6,8 @@ from selenium.common.exceptions import StaleElementReferenceException, Javascrip
 from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.chrome.service import Service
 from TextSpan import TextSpanPDF
+import requests
+from urllib.parse import urljoin
 
 logging.basicConfig(
     level=logging.DEBUG,  # Рівень логування: DEBUG для відстеження всіх подій
@@ -84,11 +86,17 @@ class ParserWeb:
                 # Замінюємо лапки на пробіли
                 text = re.sub(r'[“”"«»„\'’]', ' ', text).strip()
 
-                # Видаляємо зайві пробіли після заміни лапок
+                # Видаляємо квадратні дужки
+                text = re.sub(r'[\[\]]', '', text)
+
+                # Підкреслення перетворюємо на дефіс
+                text = text.replace('_', '-')
+
+                # Видаляємо зайві пробіли
                 text = re.sub(r'\s+', ' ', text)
 
-                # Розбиваємо текст, виключаючи розділові знаки
-                split_text = [part for part in re.split(r'[.,\-\s<>!?]+', text) if part]
+                # Розбиваємо по дефісах, пробілах, розділових
+                split_text = [part for part in re.split(r'[.,\-<>\s!?]+', text) if part]
 
                 for part in split_text:
                     if re.match(r'^[a-zA-Zа-яА-ЯіїєґІЇЄҐ0-9©]+$', part):  # Тільки текст, числа та знак ©
@@ -192,3 +200,31 @@ class ParserWeb:
         prev_x, prev_y = prev_coords
         curr_x, curr_y = curr_coords
         return ((curr_x - prev_x) ** 2 + (curr_y - prev_y) ** 2) ** 0.5
+
+    def parse_css_files(self, driver, base_url):
+        css_styles = {}
+
+        links = driver.find_elements(By.TAG_NAME, 'link')
+        for link in links:
+            rel = link.get_attribute('rel')
+            href = link.get_attribute('href')
+
+            if rel and 'stylesheet' in rel.lower() and href:
+                full_url = urljoin(base_url, href)
+                try:
+                    response = requests.get(full_url)
+                    if response.status_code == 200:
+                        css_text = response.text
+                        # Знаходимо всі класи з font-* властивостями
+                        matches = re.findall(r'(\.[\w\-]+)\s*{([^}]*font[^}]*)}', css_text)
+                        for class_selector, styles in matches:
+                            properties = {}
+                            for line in styles.split(';'):
+                                if ':' in line:
+                                    key, value = line.split(':', 1)
+                                    properties[key.strip()] = value.strip()
+                            css_styles[class_selector.strip('.')] = properties
+                except Exception as e:
+                    logging.warning(f"Could not fetch CSS from {full_url}: {e}")
+
+        return css_styles
