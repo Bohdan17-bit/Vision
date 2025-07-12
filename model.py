@@ -243,8 +243,11 @@ class Model:
     def calculate_final_pos_fixation(self, dict_probability):
         keys = list(dict_probability.keys())
         values = list(dict_probability.values())
-        if sum(values) < 0:
+
+        total_weight = sum(values)
+        if total_weight <= 0:
             return 0.9
+
         chosen_key = random.choices(keys, weights=values, k=1)[0]
         return chosen_key
 
