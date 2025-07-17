@@ -87,11 +87,18 @@ class ParserWeb:
                 if not text or all(char in {'.', ',', '-', ' ', '<', '>', '!', '?', "'", "’"} for char in text):
                     continue
 
-                text = re.sub(r'[“”"«»„\'’]', ' ', text).strip()
-                text = re.sub(r'[\[\]]', '', text)
-                text = text.replace('_', '-')
-                text = re.sub(r'\s+', ' ', text)
-                split_text = [part for part in re.split(r'[.,\-<>\s!?]+', text) if part]
+                # Обробка валюти або числа з крапкою (наприклад: "$41.78" → ["41", "78"])
+                currency_match = re.match(r'^[^\d\-+]?(\d+)\.(\d{2})$', text)
+                if currency_match:
+                    split_text = [currency_match.group(1), currency_match.group(2)]
+                else:
+                    # Заміна знаків + − – (довге тире) на пробіл
+                    text = re.sub(r'[+–−-](?=\d)', '', text)  # Видаляємо знаки тільки перед цифрами
+                    text = re.sub(r'[“”"«»„\'’]', ' ', text).strip()
+                    text = re.sub(r'[\[\]]', '', text)
+                    text = text.replace('_', '-')
+                    text = re.sub(r'\s+', ' ', text)
+                    split_text = [part for part in re.split(r'[.,\-<>\s!?]+', text) if part]
 
                 for part in split_text:
                     if re.match(r'^[a-zA-Zа-яА-ЯіїєґІЇЄҐ0-9©]+$', part):

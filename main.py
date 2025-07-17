@@ -364,6 +364,10 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
         self.data_sended.emit(data)
         time.sleep(0.02)
 
+    def setup_new_url(self):
+       url = ui.URL_lineEdit.text()
+       self.url_changed.emit(url)
+
 
 if __name__ == "__main__":
     import sys
@@ -372,6 +376,8 @@ if __name__ == "__main__":
     ui = Ui_MainWindow()
     ui.setupUi(MainWindow)
     MainWindow.show()
+
+    ui.Start_btn.clicked.connect(ui.setup_new_url)
 
     ui.Start_btn.clicked.connect(ui.worker.start)
     ui.ChooseFile_btn.clicked.connect(ui.on_choose_file_clicked)
